@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useData, processImage } from '../context/DataContext';
 import { initialData } from '../data';
-import { Plus, Trash2, Save, LogOut, ChevronDown, ChevronRight, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, RefreshCw, Menu, RotateCcw, Target } from 'lucide-react';
+import { Plus, Trash2, Save, LogOut, ChevronDown, ChevronRight, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, RefreshCw, Menu, RotateCcw, Target, MousePointer2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
@@ -217,16 +217,19 @@ const FeedbackSaveButton: React.FC<{ onClick: () => Promise<void> | void; status
   );
 };
 
-// --- Optimized Image Input with Focal Point Picker ---
+// --- Optimized Image Input with Prominent Focal Point Picker ---
 const ImageInput: React.FC<{ label: string; value: string; onChange: (val: string) => void; className?: string; }> = ({ label, value, onChange, className }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const { isUploading, error, handleUpload } = useUpload();
   const { src, style } = processImage(value);
 
+  // Extract position safely for the marker
+  const posString = style.objectPosition?.toString() || '50% 50%';
+  const [leftPos, topPos] = posString.split(' ');
+
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleUpload(e.target.files?.[0], (url) => {
-        // Keeps existing focus if changing image? No, reset.
         onChange(url);
         if (fileInputRef.current) fileInputRef.current.value = '';
     });
@@ -239,7 +242,6 @@ const ImageInput: React.FC<{ label: string; value: string; onChange: (val: strin
       const y = ((e.clientY - rect.top) / rect.height) * 100;
       
       const separator = src.includes('?') ? '&' : '?';
-      // Use toFixed to keep URL cleaner
       onChange(`${src}${separator}pos=${x.toFixed(0)},${y.toFixed(0)}`);
   };
 
@@ -259,12 +261,17 @@ const ImageInput: React.FC<{ label: string; value: string; onChange: (val: strin
                     onClick={onImageClick}
                     title="Clique para definir o ponto de foco"
                 />
-                {/* Focal Point Indicator */}
+                {/* Prominent Focal Point Indicator (Target Style) */}
                 <div 
-                    className="absolute w-3 h-3 bg-red-500 rounded-full border border-white shadow-sm pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-all duration-200"
-                    style={{ left: style.objectPosition?.toString().split(' ')[0] || '50%', top: style.objectPosition?.toString().split(' ')[1] || '50%' }}
-                />
-                <button onClick={() => onChange('')} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"><X size={12} /></button>
+                    className="absolute w-6 h-6 rounded-full border-2 border-white bg-red-500/60 shadow-md pointer-events-none transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-all duration-200 z-10"
+                    style={{ left: leftPos, top: topPos }}
+                >
+                     <div className="w-1.5 h-1.5 bg-white rounded-full shadow-sm" />
+                </div>
+                
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none" />
+                
+                <button onClick={() => onChange('')} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:scale-110 pointer-events-auto"><X size={12} /></button>
             </>
           ) : <ImageIcon className="text-stone-300" size={32} />}
         </div>
@@ -277,7 +284,7 @@ const ImageInput: React.FC<{ label: string; value: string; onChange: (val: strin
                 <input type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept="image/*" />
               </div>
               {error && <div className="flex items-center gap-2 text-xs text-red-500 font-bold bg-red-50 p-2 rounded"><AlertTriangle size={14} /> {error}</div>}
-              {value && <p className="text-[10px] text-stone-400 flex items-center gap-1"><Target size={10} /> Clique na imagem para ajustar o foco.</p>}
+              {value && <p className="text-[10px] text-stone-400 flex items-center gap-1"><MousePointer2 size={10} /> Clique na imagem para ajustar o foco.</p>}
            </div>
            <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-xs outline-none" placeholder="Ou cole URL..." />
         </div>
@@ -286,11 +293,14 @@ const ImageInput: React.FC<{ label: string; value: string; onChange: (val: strin
   );
 };
 
-// --- Optimized Photo Item Card with Focus ---
+// --- Optimized Photo Item Card with Prominent Focus ---
 const PhotoItemEditor = React.memo(({ photo, albumId, updatePhoto, removePhoto }: { photo: any, albumId: string, updatePhoto: any, removePhoto: any }) => {
     const { isUploading, error, handleUpload } = useUpload();
     const imageRef = useRef<HTMLImageElement>(null);
     const { src, style } = processImage(photo.src);
+
+    const posString = style.objectPosition?.toString() || '50% 50%';
+    const [leftPos, topPos] = posString.split(' ');
   
     const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
        handleUpload(e.target.files?.[0], (url) => updatePhoto(albumId, photo.id, 'src', url));
@@ -326,12 +336,16 @@ const PhotoItemEditor = React.memo(({ photo, albumId, updatePhoto, removePhoto }
                         onClick={onImageClick}
                         title="Clique para definir o ponto de foco"
                     />
+                     {/* Prominent Focal Point Indicator (Small) */}
                     <div 
-                        className="absolute w-2 h-2 bg-red-500 rounded-full border border-white pointer-events-none transform -translate-x-1/2 -translate-y-1/2"
-                        style={{ left: style.objectPosition?.toString().split(' ')[0] || '50%', top: style.objectPosition?.toString().split(' ')[1] || '50%' }}
-                    />
-                    <label className="absolute inset-0 flex items-end justify-end p-1 opacity-0 group-hover:opacity-100 pointer-events-none">
-                       <div className="bg-black/50 text-white p-1 rounded pointer-events-auto cursor-pointer">
+                        className="absolute w-4 h-4 rounded-full border border-white bg-red-500/60 shadow-sm pointer-events-none transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-all duration-200 z-10"
+                        style={{ left: leftPos, top: topPos }}
+                    >
+                        <div className="w-1 h-1 bg-white rounded-full shadow-sm" />
+                    </div>
+
+                    <label className="absolute inset-0 flex items-end justify-end p-1 opacity-0 group-hover:opacity-100 pointer-events-none z-20">
+                       <div className="bg-black/50 text-white p-1 rounded pointer-events-auto cursor-pointer hover:bg-black/70">
                            <Upload size={12} />
                            <input type="file" className="hidden" accept="image/*" onChange={onUpload} disabled={isUploading} />
                        </div>

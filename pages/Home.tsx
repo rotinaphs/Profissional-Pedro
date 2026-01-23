@@ -51,17 +51,36 @@ const Home: React.FC = () => {
       <div className="bg-stone-50 py-24 px-6">
         <div className="max-w-3xl mx-auto text-center">
           <FadeIn>
-            <span className="text-stone-500 uppercase tracking-[0.2em] text-sm mb-4 block">
+            <span 
+              className="uppercase tracking-[0.2em] text-sm mb-4 block"
+              style={{
+                color: 'var(--elem-subtitle-color)',
+                fontFamily: 'var(--elem-subtitle-font)'
+              }}
+            >
               {home.welcomeLabel}
             </span>
           </FadeIn>
           <FadeIn delay={200}>
-            <h2 className="font-serif text-4xl text-stone-900 mb-8 leading-tight">
+            <h2 
+              className="text-4xl mb-8 leading-tight"
+              style={{
+                color: 'var(--elem-title-color)',
+                fontFamily: 'var(--elem-title-font)'
+              }}
+            >
               {home.introTitle}
             </h2>
           </FadeIn>
           <FadeIn delay={400}>
-            <p className="font-sans text-stone-600 leading-relaxed mb-10">
+            <p 
+              className="leading-relaxed mb-10"
+              style={{
+                color: 'var(--elem-text-color)',
+                fontFamily: 'var(--elem-text-font)',
+                fontSize: 'var(--font-size-base)'
+              }}
+            >
               {home.introDescription}
             </p>
           </FadeIn>

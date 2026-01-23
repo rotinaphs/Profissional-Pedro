@@ -9,8 +9,20 @@ const Writings: React.FC = () => {
     <div className="min-h-screen bg-stone-50 py-16 md:py-24 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         <header className="mb-20 text-center">
-          <h1 className="font-serif text-5xl md:text-6xl text-stone-900 mb-6">Escritos</h1>
-          <p className="text-stone-500 font-serif italic text-lg">
+          <h1 
+            className="text-5xl md:text-6xl mb-6"
+            style={{
+               color: 'var(--elem-title-color)',
+               fontFamily: 'var(--elem-title-font)'
+            }}
+          >Escritos</h1>
+          <p 
+            className="italic text-lg"
+            style={{
+               color: 'var(--elem-subtitle-color)',
+               fontFamily: 'var(--elem-subtitle-font)'
+            }}
+          >
             Ensaios, crônicas e devaneios poéticos.
           </p>
         </header>
@@ -35,25 +47,48 @@ const Writings: React.FC = () => {
                 )}
 
                 <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3 text-xs font-bold tracking-widest uppercase text-stone-400">
-                    <span className="text-stone-900">{work.category}</span>
-                    <span>•</span>
-                    <span>{work.date}</span>
+                    <div 
+                      className="flex items-center gap-3 mb-3 text-xs font-bold tracking-widest uppercase"
+                      style={{
+                        color: 'var(--elem-subtitle-color)',
+                        fontFamily: 'var(--elem-subtitle-font)'
+                      }}
+                    >
+                      <span style={{ color: 'var(--elem-title-color)' }}>{work.category}</span>
+                      <span>•</span>
+                      <span>{work.date}</span>
                     </div>
                     
                     <Link to={`/writings/${work.id}`} className="block">
-                    <h2 className="font-serif text-3xl md:text-4xl text-stone-900 mb-4 group-hover:text-stone-600 transition-colors leading-tight">
+                    <h2 
+                      className="text-3xl md:text-4xl mb-4 transition-opacity group-hover:opacity-70 leading-tight"
+                      style={{
+                        color: 'var(--elem-title-color)',
+                        fontFamily: 'var(--elem-title-font)'
+                      }}
+                    >
                         {work.title}
                     </h2>
                     </Link>
                     
-                    <p className="font-sans text-stone-600 leading-relaxed mb-6 font-light">
+                    <p 
+                      className="leading-relaxed mb-6 font-light"
+                      style={{
+                        color: 'var(--elem-text-color)',
+                        fontFamily: 'var(--elem-text-font)',
+                        fontSize: 'var(--font-size-base)'
+                      }}
+                    >
                     {work.excerpt}
                     </p>
 
                     <Link 
                     to={`/writings/${work.id}`} 
-                    className="inline-block text-sm font-medium uppercase tracking-widest text-stone-900 border-b border-stone-300 pb-1 hover:border-stone-900 transition-colors"
+                    className="inline-block text-sm font-medium uppercase tracking-widest border-b pb-1 hover:opacity-70 transition-opacity"
+                    style={{
+                       color: 'var(--elem-title-color)',
+                       borderColor: 'var(--elem-subtitle-color)'
+                    }}
                     >
                     Ler completo
                     </Link>

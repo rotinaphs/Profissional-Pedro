@@ -11,11 +11,24 @@ const Portfolio: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         <header className="mb-16 text-center">
           <FadeIn>
-            <h1 className="font-serif text-5xl md:text-6xl text-stone-900 mb-4">Portfólio</h1>
-            <div className="h-1 w-20 bg-stone-900 mx-auto mb-6"></div>
+            <h1 
+              className="text-5xl md:text-6xl mb-4"
+              style={{
+                color: 'var(--elem-title-color)',
+                fontFamily: 'var(--elem-title-font)'
+              }}
+            >Portfólio</h1>
+            <div className="h-1 w-20 mx-auto mb-6" style={{ backgroundColor: 'var(--elem-title-color)' }}></div>
           </FadeIn>
           <FadeIn delay={200}>
-            <p className="text-stone-500 max-w-2xl mx-auto font-sans font-light">
+            <p 
+              className="max-w-2xl mx-auto font-light"
+              style={{
+                color: 'var(--elem-text-color)',
+                fontFamily: 'var(--elem-text-font)',
+                fontSize: 'var(--font-size-base)'
+              }}
+            >
               Coleções de momentos, luz e sombra. Selecione um álbum para explorar.
             </p>
           </FadeIn>
@@ -37,13 +50,32 @@ const Portfolio: React.FC = () => {
                     <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-300" />
                     </div>
                     <div className="text-center">
-                    <h2 className="font-serif text-3xl text-stone-900 mb-2 group-hover:text-stone-600 transition-colors">
+                    <h2 
+                      className="text-3xl mb-2 transition-opacity group-hover:opacity-70"
+                      style={{
+                        color: 'var(--elem-title-color)',
+                        fontFamily: 'var(--elem-title-font)'
+                      }}
+                    >
                         {album.title}
                     </h2>
-                    <p className="text-sm font-sans uppercase tracking-widest text-stone-400 mb-2">
+                    <p 
+                      className="text-sm uppercase tracking-widest mb-2"
+                      style={{
+                        color: 'var(--elem-subtitle-color)',
+                        fontFamily: 'var(--elem-subtitle-font)'
+                      }}
+                    >
                         {album.date} • {album.photos.length} Fotos
                     </p>
-                    <p className="text-stone-500 font-serif italic font-light line-clamp-2 px-8">
+                    <p 
+                      className="italic font-light line-clamp-2 px-8"
+                      style={{
+                        color: 'var(--elem-text-color)',
+                        fontFamily: 'var(--elem-text-font)',
+                        fontSize: 'var(--font-size-base)'
+                      }}
+                    >
                         {album.description}
                     </p>
                     </div>

@@ -28,11 +28,29 @@ const About: React.FC = () => {
         {/* Bio Content */}
         <div className="w-full md:w-7/12">
             <FadeIn>
-              <h1 className="font-serif text-5xl text-stone-900 mb-2">{profile.name}</h1>
-              <p className="text-stone-500 uppercase tracking-widest text-sm mb-10">{profile.role}</p>
+              <h1 
+                className="text-5xl mb-2"
+                style={{
+                  color: 'var(--elem-title-color)',
+                  fontFamily: 'var(--elem-title-font)'
+                }}
+              >{profile.name}</h1>
+              <p 
+                className="uppercase tracking-widest text-sm mb-10"
+                style={{
+                  color: 'var(--elem-subtitle-color)',
+                  fontFamily: 'var(--elem-subtitle-font)'
+                }}
+              >{profile.role}</p>
             </FadeIn>
 
-            <div className="space-y-6 font-serif text-lg md:text-xl text-stone-700 leading-relaxed mb-12">
+            <div 
+              className="space-y-6 text-lg md:text-xl leading-relaxed mb-12"
+              style={{
+                color: 'var(--elem-text-color)',
+                fontFamily: 'var(--elem-text-font)'
+              }}
+            >
               {profile.bio.map((paragraph, idx) => (
                 <FadeIn key={idx} delay={200 + (idx * 100)}>
                   <p>{paragraph}</p>
@@ -43,15 +61,18 @@ const About: React.FC = () => {
             <FadeIn delay={500}>
               <div className="border-t border-stone-200 pt-10">
                 <h3 className="font-sans text-sm font-bold uppercase tracking-widest text-stone-900 mb-6">Contato</h3>
-                <div className="flex flex-col gap-4 font-sans text-stone-600">
-                  <a href={`mailto:${profile.contact.email}`} className="flex items-center gap-3 hover:text-stone-900 transition-colors">
+                <div 
+                  className="flex flex-col gap-4 font-sans"
+                  style={{ color: 'var(--elem-text-color)' }}
+                >
+                  <a href={`mailto:${profile.contact.email}`} className="flex items-center gap-3 hover:opacity-70 transition-opacity">
                       <Mail size={20} /> {profile.contact.email}
                   </a>
-                  <a href="#" className="flex items-center gap-3 hover:text-stone-900 transition-colors">
+                  <a href="#" className="flex items-center gap-3 hover:opacity-70 transition-opacity">
                       <Instagram size={20} /> {profile.contact.instagram}
                   </a>
                   {profile.contact.linkedin && (
-                    <a href="#" className="flex items-center gap-3 hover:text-stone-900 transition-colors">
+                    <a href="#" className="flex items-center gap-3 hover:opacity-70 transition-opacity">
                         <Linkedin size={20} /> LinkedIn
                     </a>
                   )}
@@ -66,11 +87,20 @@ const About: React.FC = () => {
                   <div className="grid gap-8">
                     {testimonials.map((t) => (
                       <div key={t.id} className="bg-white p-6 rounded-lg shadow-sm border border-stone-100">
-                         <p className="font-serif text-lg italic text-stone-600 mb-6 leading-relaxed">"{t.text}"</p>
+                         <p 
+                           className="text-lg italic mb-6 leading-relaxed"
+                           style={{
+                             color: 'var(--elem-text-color)',
+                             fontFamily: 'var(--elem-text-font)'
+                           }}
+                         >"{t.text}"</p>
                          <div className="flex items-center gap-4">
                             <img src={processImage(t.avatar).src} style={processImage(t.avatar).style} alt={t.name} className="w-10 h-10 rounded-full object-cover bg-stone-200" />
                             <div>
-                               <p className="font-sans text-xs font-bold text-stone-900 uppercase tracking-wide">{t.name}</p>
+                               <p 
+                                 className="text-xs font-bold uppercase tracking-wide"
+                                 style={{ color: 'var(--elem-title-color)' }}
+                               >{t.name}</p>
                                {t.role && <p className="font-sans text-[10px] text-stone-400 uppercase tracking-widest">{t.role}</p>}
                             </div>
                          </div>
