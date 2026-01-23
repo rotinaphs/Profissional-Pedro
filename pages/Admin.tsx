@@ -1,63 +1,72 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useData } from '../context/DataContext';
-import { Plus, Trash2, Save, LogOut, ChevronDown, ChevronRight, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, ArrowRight, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, Database, AlertTriangle, Terminal, Copy } from 'lucide-react';
+import { Plus, Trash2, Save, LogOut, ChevronDown, ChevronRight, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
-// --- Helper Function: Upload to Supabase ---
+// --- Utility: Upload Logic (Pure Function) ---
 const uploadToStorage = async (file: File): Promise<string> => {
-  if (!file.type.startsWith('image/')) {
-    throw new Error('Apenas arquivos de imagem são permitidos.');
-  }
+  if (!file.type.startsWith('image/')) throw new Error('Apenas arquivos de imagem são permitidos.');
 
-  // Sanitizar nome do arquivo
   const fileExt = file.name.split('.').pop();
   const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-  const filePath = fileName;
 
-  const { error } = await supabase.storage
-    .from('portfolio-images')
-    .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-    });
+  const { error } = await supabase.storage.from('portfolio-images').upload(fileName, file, { cacheControl: '3600', upsert: false });
 
   if (error) {
     console.error("Erro Supabase Storage:", error);
-    if (error.message.includes('Bucket not found') || error.message.includes('row not found')) {
-        throw new Error('BUCKET_MISSING');
-    }
+    if (error.message.includes('Bucket not found') || error.message.includes('row not found')) throw new Error('BUCKET_MISSING');
     throw error;
   }
 
-  const { data } = supabase.storage
-    .from('portfolio-images')
-    .getPublicUrl(filePath);
-
+  const { data } = supabase.storage.from('portfolio-images').getPublicUrl(fileName);
   return data.publicUrl;
 };
 
+// --- Custom Hook: Manage Upload State ---
+const useUpload = () => {
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleUpload = useCallback(async (file: File | undefined, onSuccess: (url: string) => void) => {
+    if (!file) return;
+    setIsUploading(true);
+    setError('');
+    try {
+      const url = await uploadToStorage(file);
+      onSuccess(url);
+    } catch (err: any) {
+       const msg = err.message === 'BUCKET_MISSING' 
+         ? 'ERRO: Bucket não encontrado. Verifique o Supabase.' 
+         : (err.message || 'Falha ao enviar imagem.');
+       setError(msg);
+    } finally {
+      setIsUploading(false);
+    }
+  }, []);
+
+  return { isUploading, error, handleUpload, setError };
+};
+
+// --- Main Admin Component ---
 const Admin: React.FC = () => {
   const { profile, albums, writings, testimonials, theme, home, updateProfile, updateAlbums, updateWritings, updateTestimonials, updateTheme, updateHome, resetData } = useData();
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  
+  // Login State
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<'home' | 'profile' | 'portfolio' | 'writings' | 'testimonials' | 'theme' | 'setup'>('home');
+  const [activeTab, setActiveTab] = useState('home');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => setSession(session));
     return () => subscription.unsubscribe();
   }, []);
 
@@ -65,22 +74,21 @@ const Admin: React.FC = () => {
     e.preventDefault();
     setIsLoggingIn(true);
     setLoginError('');
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      setLoginError(error.message === 'Invalid login credentials' ? 'Email ou senha incorretos.' : 'Erro ao conectar.');
-    }
+    const { error } = await supabase.auth.signInWithPassword(credentials);
+    if (error) setLoginError(error.message === 'Invalid login credentials' ? 'Credenciais inválidas.' : 'Erro ao conectar.');
     setIsLoggingIn(false);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
+  const menuItems = [
+    { id: 'home', label: 'Página Inicial', icon: <Layout size={20} /> },
+    { id: 'profile', label: 'Perfil & Bio', icon: <User size={20} /> },
+    { id: 'portfolio', label: 'Portfólio', icon: <ImageIcon size={20} /> },
+    { id: 'writings', label: 'Escritos', icon: <BookOpen size={20} /> },
+    { id: 'testimonials', label: 'Depoimentos', icon: <MessageSquareQuote size={20} /> },
+    { id: 'theme', label: 'Aparência', icon: <Settings size={20} /> },
+  ];
 
-  if (loading) {
-     return <div className="min-h-screen bg-stone-50 flex items-center justify-center"><Loader2 className="animate-spin text-stone-900" size={32} /></div>;
-  }
+  if (loading) return <div className="min-h-screen bg-stone-50 flex items-center justify-center"><Loader2 className="animate-spin text-stone-900" size={32} /></div>;
 
   if (!session) {
     return (
@@ -93,11 +101,11 @@ const Admin: React.FC = () => {
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 border border-stone-300 rounded-lg" required />
+              <input type="email" value={credentials.email} onChange={(e) => setCredentials({...credentials, email: e.target.value})} className="w-full p-3 border border-stone-300 rounded-lg" required />
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">Senha</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border border-stone-300 rounded-lg" required />
+              <input type="password" value={credentials.password} onChange={(e) => setCredentials({...credentials, password: e.target.value})} className="w-full p-3 border border-stone-300 rounded-lg" required />
             </div>
             {loginError && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2"><X size={14} /> {loginError}</div>}
             <button type="submit" disabled={isLoggingIn} className="w-full bg-stone-900 text-white py-3 rounded-lg flex justify-center items-center gap-2 disabled:opacity-70">
@@ -119,20 +127,14 @@ const Admin: React.FC = () => {
           <h2 className="text-2xl font-serif font-bold text-stone-100 mb-2">Admin Painel</h2>
           <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500">{session.user.email}</p>
         </div>
-        <nav className="space-y-4 flex-1 overflow-y-auto pr-2">
-           <NavButton active={activeTab === 'home'} onClick={() => setActiveTab('home')} icon={<Layout size={20} />} label="Página Inicial" />
-           <NavButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<User size={20} />} label="Perfil & Bio" />
-           <NavButton active={activeTab === 'portfolio'} onClick={() => setActiveTab('portfolio')} icon={<ImageIcon size={20} />} label="Portfólio" />
-           <NavButton active={activeTab === 'writings'} onClick={() => setActiveTab('writings')} icon={<BookOpen size={20} />} label="Escritos" />
-           <NavButton active={activeTab === 'testimonials'} onClick={() => setActiveTab('testimonials')} icon={<MessageSquareQuote size={20} />} label="Depoimentos" />
-           <NavButton active={activeTab === 'theme'} onClick={() => setActiveTab('theme')} icon={<Settings size={20} />} label="Aparência" />
-           <div className="border-t border-stone-800 my-4 pt-4">
-             <NavButton active={activeTab === 'setup'} onClick={() => setActiveTab('setup')} icon={<Database size={20} />} label="Sistema" />
-           </div>
+        <nav className="space-y-2 flex-1 overflow-y-auto pr-2">
+           {menuItems.map(item => (
+             <NavButton key={item.id} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} icon={item.icon} label={item.label} />
+           ))}
         </nav>
         <div className="mt-auto pt-8 border-t border-stone-800/50 space-y-6">
           <Link to="/" className="flex items-center gap-3 text-stone-400 hover:text-white transition-colors text-sm group"><ArrowLeft size={18} /> Ver Site</Link>
-          <button onClick={handleLogout} className="flex items-center gap-3 text-red-400 hover:text-red-300 transition-colors text-sm w-full text-left"><LogOut size={18} /> Sair</button>
+          <button onClick={() => supabase.auth.signOut()} className="flex items-center gap-3 text-red-400 hover:text-red-300 transition-colors text-sm w-full text-left"><LogOut size={18} /> Sair</button>
           <button onClick={resetData} className="text-xs text-stone-600 hover:text-stone-400 underline w-full text-left">Resetar tudo</button>
         </div>
       </aside>
@@ -144,12 +146,13 @@ const Admin: React.FC = () => {
             {activeTab === 'writings' && <WritingsEditor writings={writings} updateWritings={updateWritings} />}
             {activeTab === 'testimonials' && <TestimonialsEditor testimonials={testimonials} updateTestimonials={updateTestimonials} />}
             {activeTab === 'theme' && <ThemeEditor theme={theme} updateTheme={updateTheme} />}
-            {activeTab === 'setup' && <SetupPanel />}
          </div>
       </main>
     </div>
   );
 };
+
+// --- Sub-Components ---
 
 const NavButton = ({ active, onClick, icon, label }: any) => (
   <button onClick={onClick} className={`w-full flex items-center gap-4 px-4 py-4 rounded-lg transition-all duration-300 ${active ? 'bg-stone-800 text-white shadow-lg translate-x-2' : 'hover:bg-stone-800/30 hover:text-stone-200'}`}>
@@ -167,30 +170,16 @@ const FeedbackSaveButton: React.FC<{ onClick: () => Promise<void> | void; status
   );
 };
 
-// --- Reusable Image Upload Component ---
+// --- Optimized Image Input ---
 const ImageInput: React.FC<{ label: string; value: string; onChange: (val: string) => void; className?: string; }> = ({ label, value, onChange, className }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const { isUploading, error, handleUpload } = useUpload();
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    setErrorMsg('');
-    try {
-      const url = await uploadToStorage(file);
-      onChange(url);
-    } catch (error: any) {
-      if (error.message === 'BUCKET_MISSING') {
-         setErrorMsg('ERRO: Bucket não encontrado. Vá para a aba "Sistema" para corrigir.');
-      } else {
-         setErrorMsg(error.message || 'Falha ao enviar imagem.');
-      }
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleUpload(e.target.files?.[0], (url) => {
+        onChange(url);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    });
   };
 
   return (
@@ -198,21 +187,17 @@ const ImageInput: React.FC<{ label: string; value: string; onChange: (val: strin
       <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">{label}</label>
       <div className="flex gap-4 items-start">
         <div className="relative group w-24 h-24 flex-shrink-0 bg-stone-100 rounded-lg border border-stone-200 overflow-hidden flex items-center justify-center">
-          {uploading ? <Loader2 className="animate-spin text-stone-400" size={24}/> : value ? <><img src={value} alt="Preview" className="w-full h-full object-cover" /><button onClick={() => onChange('')} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button></> : <ImageIcon className="text-stone-300" size={32} />}
+          {isUploading ? <Loader2 className="animate-spin text-stone-400" size={24}/> : value ? <><img src={value} alt="Preview" className="w-full h-full object-cover" /><button onClick={() => onChange('')} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button></> : <ImageIcon className="text-stone-300" size={32} />}
         </div>
         <div className="flex-1 space-y-3">
            <div className="flex flex-col gap-2">
               <div className="flex gap-2">
-                <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="bg-stone-200 text-stone-700 px-4 py-2 rounded text-xs font-bold uppercase tracking-wide hover:bg-stone-300 transition-colors flex items-center gap-2 disabled:opacity-50">
-                    <Upload size={14} /> {uploading ? 'Enviando...' : 'Upload Alta Resolução'}
+                <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="bg-stone-200 text-stone-700 px-4 py-2 rounded text-xs font-bold uppercase tracking-wide hover:bg-stone-300 transition-colors flex items-center gap-2 disabled:opacity-50">
+                    <Upload size={14} /> {isUploading ? 'Enviando...' : 'Upload Alta Resolução'}
                 </button>
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+                <input type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept="image/*" />
               </div>
-              {errorMsg && (
-                  <div className="flex items-center gap-2 text-xs text-red-500 font-bold bg-red-50 p-2 rounded">
-                      <AlertTriangle size={14} /> {errorMsg}
-                  </div>
-              )}
+              {error && <div className="flex items-center gap-2 text-xs text-red-500 font-bold bg-red-50 p-2 rounded"><AlertTriangle size={14} /> {error}</div>}
            </div>
            <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-xs outline-none" placeholder="Ou cole URL..." />
         </div>
@@ -221,39 +206,31 @@ const ImageInput: React.FC<{ label: string; value: string; onChange: (val: strin
   );
 };
 
-// --- Component to handle individual Photo Uploads in Gallery ---
-const PhotoItemEditor: React.FC<{ photo: any, albumId: string, updatePhoto: any, removePhoto: any }> = ({ photo, albumId, updatePhoto, removePhoto }) => {
-    const [uploading, setUploading] = useState(false);
+// --- Optimized Photo Item Card (Previously ChecklistItemCard concept) ---
+const PhotoItemEditor = React.memo(({ photo, albumId, updatePhoto, removePhoto }: { photo: any, albumId: string, updatePhoto: any, removePhoto: any }) => {
+    const { isUploading, error, handleUpload } = useUpload();
   
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      setUploading(true);
-      try {
-        const url = await uploadToStorage(file);
-        updatePhoto(albumId, photo.id, 'src', url);
-      } catch (error: any) {
-        if (error.message === 'BUCKET_MISSING') {
-            alert('ERRO: Bucket de imagens não existe. Vá para a aba "Sistema" no menu lateral para corrigir isso automaticamente.');
-        } else {
-            alert(error.message || 'Erro ao enviar imagem.');
-        }
-      } finally {
-        setUploading(false);
-      }
+    // Use callback to avoid creating function on every render if not needed, though handleUpload is already stable
+    const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+       handleUpload(e.target.files?.[0], (url) => updatePhoto(albumId, photo.id, 'src', url));
     };
+
+    // Error handling inside the item
+    useEffect(() => {
+        if (error) alert(error); // Simple alert for list items to avoid layout shifts
+    }, [error]);
   
     return (
       <div className="flex gap-4 items-start bg-stone-50 p-3 rounded-lg border border-stone-100">
          <div className="relative group w-20 h-20 flex-shrink-0 bg-stone-200 rounded overflow-hidden flex items-center justify-center">
-             {uploading ? (
+             {isUploading ? (
                  <Loader2 className="animate-spin text-stone-400" />
              ) : (
                  <>
                     <img src={photo.src} className="w-full h-full object-cover" alt="thumb" />
                     <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                        <Upload className="text-white" size={16} />
-                       <input type="file" className="hidden" accept="image/*" onChange={handleUpload} disabled={uploading} />
+                       <input type="file" className="hidden" accept="image/*" onChange={onUpload} disabled={isUploading} />
                     </label>
                  </>
              )}
@@ -265,129 +242,12 @@ const PhotoItemEditor: React.FC<{ photo: any, albumId: string, updatePhoto: any,
          <button onClick={() => removePhoto(albumId, photo.id)} className="text-stone-400 hover:text-red-500 p-1"><XIcon /></button>
       </div>
     );
-};
-
-// --- Setup Panel for Infrastructure Fixes ---
-const SetupPanel: React.FC = () => {
-    const [status, setStatus] = useState<'idle' | 'checking' | 'creating' | 'success' | 'error'>('idle');
-    const [errorDetails, setErrorDetails] = useState('');
-
-    const checkAndFixBucket = async () => {
-        setStatus('checking');
-        try {
-            // Tenta criar o bucket
-            const { data, error } = await supabase.storage.createBucket('portfolio-images', {
-                public: true,
-                fileSizeLimit: 5242880, // 5MB
-                allowedMimeTypes: ['image/*']
-            });
-
-            if (error) {
-                // Se o erro for "Duplicate", significa que já existe, mas talvez falte policy
-                if (error.message.includes('already exists')) {
-                    setStatus('success');
-                } else {
-                    throw error;
-                }
-            } else {
-                setStatus('success');
-            }
-        } catch (e: any) {
-            console.error(e);
-            setStatus('error');
-            setErrorDetails(e.message || 'Erro desconhecido');
-        }
-    };
-
-    const sqlScript = `
--- 1. Cria o bucket público
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('portfolio-images', 'portfolio-images', true)
-ON CONFLICT (id) DO NOTHING;
-
--- 2. Permite acesso público para visualizar imagens
-CREATE POLICY "Public Access" ON storage.objects FOR SELECT 
-USING ( bucket_id = 'portfolio-images' );
-
--- 3. Permite upload apenas para usuários logados
-CREATE POLICY "Auth Upload" ON storage.objects FOR INSERT 
-TO authenticated WITH CHECK ( bucket_id = 'portfolio-images' );
-
--- 4. Permite editar/deletar apenas para usuários logados
-CREATE POLICY "Auth Update" ON storage.objects FOR UPDATE 
-TO authenticated USING ( bucket_id = 'portfolio-images' );
-
-CREATE POLICY "Auth Delete" ON storage.objects FOR DELETE 
-TO authenticated USING ( bucket_id = 'portfolio-images' );
-    `.trim();
-
-    return (
-        <div className="max-w-4xl h-full flex flex-col">
-            <h2 className="text-3xl font-serif font-bold text-stone-900 mb-8">Diagnóstico de Sistema</h2>
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-stone-100 flex-1 overflow-y-auto">
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-8">
-                    <div className="flex items-start gap-4">
-                        <AlertTriangle className="text-amber-600 flex-shrink-0 mt-1" />
-                        <div>
-                            <h3 className="text-lg font-bold text-amber-800 mb-2">Configuração de Armazenamento</h3>
-                            <p className="text-amber-700 text-sm mb-4 leading-relaxed">
-                                Se você está vendo erros como "Bucket not found" ao tentar fazer upload de imagens, 
-                                é porque o espaço de armazenamento na nuvem (Supabase Storage) ainda não foi criado.
-                            </p>
-                            
-                            {status === 'idle' && (
-                                <button 
-                                    onClick={checkAndFixBucket}
-                                    className="bg-amber-600 text-white px-6 py-3 rounded-lg font-bold text-sm uppercase tracking-wide hover:bg-amber-700 transition-colors shadow-sm flex items-center gap-2"
-                                >
-                                    <Database size={16} /> Tentar Corrigir Automaticamente
-                                </button>
-                            )}
-
-                            {status === 'checking' && <p className="text-stone-500 font-bold flex items-center gap-2"><Loader2 className="animate-spin"/> Verificando...</p>}
-                            
-                            {status === 'success' && (
-                                <div className="bg-green-100 text-green-800 p-4 rounded font-bold flex items-center gap-2">
-                                    <Check /> Sucesso! O bucket "portfolio-images" deve estar ativo. Tente fazer upload novamente.
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* SQL Fallback */}
-                {(status === 'error' || status === 'idle') && (
-                    <div className="space-y-4">
-                        <h3 className="font-bold text-stone-800 flex items-center gap-2">
-                            <Terminal size={20} /> Correção Manual (Garantida)
-                        </h3>
-                        <p className="text-sm text-stone-500">
-                            Se a correção automática falhou (provavelmente por falta de permissão de administrador na API), 
-                            copie o código abaixo e execute no <strong>SQL Editor</strong> do seu painel Supabase.
-                        </p>
-                        
-                        <div className="relative bg-stone-900 rounded-lg p-6 overflow-x-auto group">
-                            <pre className="text-stone-300 font-mono text-xs leading-relaxed whitespace-pre">
-                                {sqlScript}
-                            </pre>
-                            <button 
-                                onClick={() => navigator.clipboard.writeText(sqlScript)}
-                                className="absolute top-4 right-4 bg-stone-700 text-white p-2 rounded hover:bg-stone-600 transition-colors"
-                                title="Copiar SQL"
-                            >
-                                <Copy size={16} />
-                            </button>
-                        </div>
-                        
-                        {status === 'error' && (
-                             <p className="text-xs text-red-500 font-mono mt-2">Erro técnico: {errorDetails}</p>
-                        )}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
+}, (prev, next) => {
+    // Custom comparison for Memo: Only re-render if THIS specific photo's data changed
+    return prev.photo.src === next.photo.src && 
+           prev.photo.caption === next.photo.caption && 
+           prev.photo.id === next.photo.id;
+});
 
 // --- Editors ---
 
@@ -471,7 +331,12 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any }> = ({ album
   const updateAlbumField = (id: string, field: string, value: string) => { setLocalAlbums(localAlbums.map(a => a.id === id ? { ...a, [field]: value } : a)); };
   const addPhoto = (albumId: string) => { setLocalAlbums(localAlbums.map(a => { if (a.id === albumId) { return { ...a, photos: [...a.photos, { id: `p-${Date.now()}`, src: "https://picsum.photos/1200/800", alt: "Nova foto", caption: "" }] }; } return a; })); };
   const removePhoto = (albumId: string, photoId: string) => { setLocalAlbums(localAlbums.map(a => { if (a.id === albumId) { return { ...a, photos: a.photos.filter((p: any) => p.id !== photoId) }; } return a; })); };
-  const updatePhoto = (albumId: string, photoId: string, field: string, value: string) => { setLocalAlbums(localAlbums.map(a => { if (a.id === albumId) { return { ...a, photos: a.photos.map((p: any) => p.id === photoId ? { ...p, [field]: value } : p) }; } return a; })); };
+  const updatePhoto = useCallback((albumId: string, photoId: string, field: string, value: string) => {
+     setLocalAlbums(prev => prev.map(a => {
+        if (a.id !== albumId) return a;
+        return { ...a, photos: a.photos.map((p: any) => p.id === photoId ? { ...p, [field]: value } : p) };
+     }));
+  }, []);
 
   return (
     <div className="max-w-5xl h-full flex flex-col">
