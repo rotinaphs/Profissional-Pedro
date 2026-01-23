@@ -65,14 +65,21 @@ const About: React.FC = () => {
                   className="flex flex-col gap-4 font-sans"
                   style={{ color: 'var(--elem-text-color)' }}
                 >
-                  <a href={`mailto:${profile.contact.email}`} className="flex items-center gap-3 hover:opacity-70 transition-opacity">
+                  <a href={`mailto:${profile.contact.email}`} className="flex items-center gap-3 hover:opacity-70 transition-opacity w-fit">
                       <Mail size={20} /> {profile.contact.email}
                   </a>
-                  <a href="#" className="flex items-center gap-3 hover:opacity-70 transition-opacity">
+                  
+                  <a 
+                    href={`https://instagram.com/${profile.contact.instagram.replace(/^@/, '')}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="flex items-center gap-3 hover:opacity-70 transition-opacity w-fit"
+                  >
                       <Instagram size={20} /> {profile.contact.instagram}
                   </a>
+
                   {profile.contact.linkedin && (
-                    <a href="#" className="flex items-center gap-3 hover:opacity-70 transition-opacity">
+                    <a href={`https://${profile.contact.linkedin.replace(/^https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:opacity-70 transition-opacity w-fit">
                         <Linkedin size={20} /> LinkedIn
                     </a>
                   )}
