@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useData } from '../context/DataContext';
-import { Plus, Trash2, Save, LogOut, ChevronDown, ChevronRight, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Save, LogOut, ChevronDown, ChevronRight, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, RefreshCw, Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
@@ -59,7 +59,9 @@ const Admin: React.FC = () => {
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   
+  // Navigation State
   const [activeTab, setActiveTab] = useState('home');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -77,6 +79,11 @@ const Admin: React.FC = () => {
     const { error } = await supabase.auth.signInWithPassword(credentials);
     if (error) setLoginError(error.message === 'Invalid login credentials' ? 'Credenciais inválidas.' : 'Erro ao conectar.');
     setIsLoggingIn(false);
+  };
+
+  const handleNavClick = (tabId: string) => {
+    setActiveTab(tabId);
+    setIsSidebarOpen(false); // Close sidebar on mobile when item clicked
   };
 
   const menuItems = [
@@ -122,25 +129,62 @@ const Admin: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row font-sans text-stone-900">
-      <aside className="w-full md:w-72 bg-[#1c1917] text-stone-400 p-8 flex-shrink-0 flex flex-col min-h-screen fixed md:relative z-10">
-        <div className="mb-12">
-          <h2 className="text-2xl font-serif font-bold text-stone-100 mb-2">Admin Painel</h2>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500">{session.user.email}</p>
+    <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row font-sans text-stone-900 overflow-hidden">
+      
+      {/* Mobile Header */}
+      <div className="md:hidden bg-[#1c1917] text-stone-100 p-4 flex items-center justify-between shadow-md z-30 sticky top-0">
+         <span className="font-serif font-bold text-lg tracking-wide">Admin Painel</span>
+         <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-stone-300 hover:text-white">
+            <Menu size={24} />
+         </button>
+      </div>
+
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`
+          fixed inset-y-0 left-0 z-50 w-72 bg-[#1c1917] text-stone-400 p-8 flex flex-col h-full shadow-2xl transition-transform duration-300 ease-in-out
+          md:relative md:translate-x-0 md:shadow-none
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="mb-12 flex justify-between items-start">
+          <div>
+            <h2 className="text-2xl font-serif font-bold text-stone-100 mb-2">Admin Painel</h2>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500 truncate max-w-[180px]">{session.user.email}</p>
+          </div>
+          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-stone-500 hover:text-white">
+            <X size={24} />
+          </button>
         </div>
-        <nav className="space-y-2 flex-1 overflow-y-auto pr-2">
+
+        <nav className="space-y-2 flex-1 overflow-y-auto pr-2 no-scrollbar">
            {menuItems.map(item => (
-             <NavButton key={item.id} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} icon={item.icon} label={item.label} />
+             <NavButton 
+                key={item.id} 
+                active={activeTab === item.id} 
+                onClick={() => handleNavClick(item.id)} 
+                icon={item.icon} 
+                label={item.label} 
+             />
            ))}
         </nav>
+
         <div className="mt-auto pt-8 border-t border-stone-800/50 space-y-6">
           <Link to="/" className="flex items-center gap-3 text-stone-400 hover:text-white transition-colors text-sm group"><ArrowLeft size={18} /> Ver Site</Link>
           <button onClick={() => supabase.auth.signOut()} className="flex items-center gap-3 text-red-400 hover:text-red-300 transition-colors text-sm w-full text-left"><LogOut size={18} /> Sair</button>
           <button onClick={resetData} className="text-xs text-stone-600 hover:text-stone-400 underline w-full text-left">Resetar tudo</button>
         </div>
       </aside>
-      <main className="flex-1 bg-white md:bg-stone-50 overflow-y-auto h-screen w-full">
-         <div className="p-6 md:p-12 h-full max-w-[1600px] mx-auto">
+
+      {/* Main Content Area */}
+      <main className="flex-1 bg-white md:bg-stone-50 h-[calc(100vh-60px)] md:h-screen w-full overflow-hidden flex flex-col relative">
+         <div className="flex-1 overflow-y-auto p-4 md:p-12 w-full max-w-[1600px] mx-auto">
             {activeTab === 'home' && <HomeEditor home={home} updateHome={updateHome} />}
             {activeTab === 'profile' && <ProfileEditor profile={profile} updateProfile={updateProfile} />}
             {activeTab === 'portfolio' && <PortfolioEditor albums={albums} updateAlbums={updateAlbums} />}
