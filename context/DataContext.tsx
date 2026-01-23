@@ -15,6 +15,32 @@ interface DataContextType extends AppData {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+// --- Image Utility ---
+export const processImage = (rawUrl: string | undefined) => {
+  if (!rawUrl) return { src: '', style: {} };
+  
+  // Detecta padrão ?pos=x,y ou &pos=x,y
+  const match = rawUrl.match(/([?&])pos=([\d\.]+),([\d\.]+)/);
+  let src = rawUrl;
+  let style: React.CSSProperties = {};
+  
+  if (match) {
+      // Remove o parâmetro da URL base para o src limpo
+      src = rawUrl.replace(match[0], '');
+      
+      const x = match[2];
+      const y = match[3];
+      const pos = `${x}% ${y}%`;
+      
+      style = { 
+          objectPosition: pos,
+          backgroundPosition: pos
+      };
+  }
+
+  return { src, style };
+};
+
 // Função ROBUSTA para garantir que o site nunca quebre, mesmo se faltarem dados no JSON
 const mergeWithInitial = (incoming: any): AppData => {
   if (!incoming || typeof incoming !== 'object') return initialData;
@@ -39,7 +65,8 @@ const mergeWithInitial = (incoming: any): AppData => {
     ...(incoming.theme || {}),
     colors: { ...initialData.theme.colors, ...(incoming.theme?.colors || {}) },
     fonts: { ...initialData.theme.fonts, ...(incoming.theme?.fonts || {}) },
-    fontSizes: { ...initialData.theme.fontSizes, ...(incoming.theme?.fontSizes || {}) }
+    fontSizes: { ...initialData.theme.fontSizes, ...(incoming.theme?.fontSizes || {}) },
+    elementStyles: { ...initialData.theme.elementStyles, ...(incoming.theme?.elementStyles || {}) }
   };
 
   // Proteção para a Home
@@ -169,6 +196,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProp('--font-size-title', theme.fontSizes.title);
       setProp('--font-size-subtitle', theme.fontSizes.subtitle);
       setProp('--font-size-caption', theme.fontSizes.caption);
+    }
+
+    if (theme.elementStyles) {
+      setProp('--elem-title-font', theme.elementStyles.title.font);
+      setProp('--elem-title-color', theme.elementStyles.title.color);
+      
+      setProp('--elem-subtitle-font', theme.elementStyles.subtitle.font);
+      setProp('--elem-subtitle-color', theme.elementStyles.subtitle.color);
+      
+      setProp('--elem-text-font', theme.elementStyles.text.font);
+      setProp('--elem-text-color', theme.elementStyles.text.color);
+      
+      setProp('--elem-caption-font', theme.elementStyles.caption.font);
+      setProp('--elem-caption-color', theme.elementStyles.caption.color);
     }
   };
 

@@ -54,6 +54,11 @@ export interface HomeContent {
   introDescription: string;
 }
 
+export interface ElementStyle {
+  font: string;
+  color: string;
+}
+
 export interface ThemeConfig {
   colors: {
     background: string;
@@ -70,6 +75,12 @@ export interface ThemeConfig {
     title: string;    // for main titles
     subtitle: string; // for categories/dates
     caption: string;  // for photo captions
+  };
+  elementStyles?: {
+    title: ElementStyle;
+    subtitle: ElementStyle;
+    text: ElementStyle;
+    caption: ElementStyle;
   };
   heroImage?: string;
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { useData } from '../context/DataContext';
+import { useData, processImage } from '../context/DataContext';
 import Lightbox from '../components/Lightbox';
 import FadeIn from '../components/FadeIn';
 
@@ -46,16 +46,24 @@ const Album: React.FC = () => {
           </FadeIn>
           <FadeIn delay={100}>
             <h1 
-              className="font-serif text-stone-900 mb-8 tracking-tight"
-              style={{ fontSize: 'var(--font-size-title)' }}
+              className="mb-8 tracking-tight"
+              style={{ 
+                fontSize: 'var(--font-size-title)',
+                fontFamily: 'var(--elem-title-font)',
+                color: 'var(--elem-title-color)'
+              }}
             >
               {album.title}
             </h1>
           </FadeIn>
           <FadeIn delay={200}>
             <p 
-              className="font-serif text-stone-500 italic max-w-3xl mx-auto leading-relaxed"
-              style={{ fontSize: 'var(--font-size-base)' }}
+              className="max-w-3xl mx-auto leading-relaxed"
+              style={{ 
+                fontSize: 'var(--font-size-base)',
+                fontFamily: 'var(--elem-subtitle-font)',
+                color: 'var(--elem-subtitle-color)'
+              }}
             >
               {album.description}
             </p>
@@ -66,36 +74,44 @@ const Album: React.FC = () => {
       {/* Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="columns-1 md:columns-2 lg:columns-3 gap-8 space-y-8">
-          {album.photos.map((photo, index) => (
-            <FadeIn key={photo.id} delay={index * 50} className="break-inside-avoid">
-              <div 
-                className="cursor-zoom-in group relative mb-8"
-                onClick={() => openLightbox(index)}
-              >
-                <img 
-                  src={photo.src} 
-                  alt={photo.alt} 
-                  className="w-full h-auto shadow-sm hover:shadow-md transition-shadow duration-300"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100">
-                  <span 
-                    className="text-white font-medium uppercase tracking-[0.2em]"
-                    style={{ fontSize: 'var(--font-size-subtitle)' }}
-                  >
-                    {photo.caption}
-                  </span>
+          {album.photos.map((photo, index) => {
+            const { src, style } = processImage(photo.src);
+            return (
+                <FadeIn key={photo.id} delay={index * 50} className="break-inside-avoid">
+                <div 
+                    className="cursor-zoom-in group relative mb-8"
+                    onClick={() => openLightbox(index)}
+                >
+                    <img 
+                    src={src} 
+                    alt={photo.alt} 
+                    className="w-full h-auto shadow-sm hover:shadow-md transition-shadow duration-300"
+                    loading="lazy"
+                    style={style}
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100">
+                    <span 
+                        className="uppercase tracking-[0.2em]"
+                        style={{ 
+                        fontSize: 'var(--font-size-subtitle)',
+                        fontFamily: 'var(--elem-caption-font)',
+                        color: 'var(--elem-caption-color)'
+                        }}
+                    >
+                        {photo.caption}
+                    </span>
+                    </div>
                 </div>
-              </div>
-            </FadeIn>
-          ))}
+                </FadeIn>
+            );
+          })}
         </div>
       </div>
 
       {/* Lightbox */}
       {lightboxIndex !== null && (
         <Lightbox 
-          photo={album.photos[lightboxIndex]}
+          photo={{ ...album.photos[lightboxIndex], src: processImage(album.photos[lightboxIndex].src).src }}
           onClose={closeLightbox}
           onNext={nextPhoto}
           onPrev={prevPhoto}

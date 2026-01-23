@@ -1,21 +1,25 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import { useData } from '../context/DataContext';
+import { useData, processImage } from '../context/DataContext';
 import FadeIn from '../components/FadeIn';
 
 const Home: React.FC = () => {
   const { albums, theme, home } = useData();
   // Use theme hero image, fallback to first album image, fallback to default
-  const heroImage = theme.heroImage || albums[0]?.photos[0]?.src || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80";
+  const heroImageRaw = theme.heroImage || albums[0]?.photos[0]?.src || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80";
+  const { src: heroSrc, style: heroStyle } = processImage(heroImageRaw);
 
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
       <div className="relative h-[85vh] w-full overflow-hidden">
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-[10s] hover:scale-105 animate-fade-in"
-          style={{ backgroundImage: `url(${heroImage})` }}
+          className="absolute inset-0 bg-cover bg-no-repeat transition-transform duration-[10s] hover:scale-105 animate-fade-in"
+          style={{ 
+              backgroundImage: `url(${heroSrc})`,
+              backgroundPosition: heroStyle.backgroundPosition || 'center'
+          }}
         />
         <div className="absolute inset-0 bg-black/30" /> {/* Overlay */}
         
@@ -71,21 +75,27 @@ const Home: React.FC = () => {
 
       {/* Featured Albums Preview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {albums.slice(0, 3).map((album, index) => (
-          <FadeIn key={album.id} delay={index * 200} className="h-full">
-            <Link to={`/portfolio/${album.id}`} className="group relative h-96 overflow-hidden block">
-              <div 
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                style={{ backgroundImage: `url(${album.coverImage})` }}
-              />
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300" />
-              <div className="absolute inset-0 flex flex-col justify-end p-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-4 group-hover:translate-y-0">
-                <span className="text-xs uppercase tracking-widest mb-2">{album.date}</span>
-                <h3 className="font-serif text-2xl italic">{album.title}</h3>
-              </div>
-            </Link>
-          </FadeIn>
-        ))}
+        {albums.slice(0, 3).map((album, index) => {
+          const { src, style } = processImage(album.coverImage);
+          return (
+            <FadeIn key={album.id} delay={index * 200} className="h-full">
+                <Link to={`/portfolio/${album.id}`} className="group relative h-96 overflow-hidden block">
+                <div 
+                    className="absolute inset-0 bg-cover transition-transform duration-700 group-hover:scale-110"
+                    style={{ 
+                        backgroundImage: `url(${src})`,
+                        backgroundPosition: style.backgroundPosition || 'center'
+                    }}
+                />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300" />
+                <div className="absolute inset-0 flex flex-col justify-end p-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-4 group-hover:translate-y-0">
+                    <span className="text-xs uppercase tracking-widest mb-2">{album.date}</span>
+                    <h3 className="font-serif text-2xl italic">{album.title}</h3>
+                </div>
+                </Link>
+            </FadeIn>
+          );
+        })}
       </div>
     </div>
   );

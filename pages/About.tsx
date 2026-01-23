@@ -1,10 +1,11 @@
 import React from 'react';
-import { useData } from '../context/DataContext';
+import { useData, processImage } from '../context/DataContext';
 import { Mail, Instagram, Linkedin } from 'lucide-react';
 import FadeIn from '../components/FadeIn';
 
 const About: React.FC = () => {
   const { profile, testimonials } = useData();
+  const { src, style } = processImage(profile.profileImage);
 
   return (
     <div className="min-h-screen bg-stone-50 py-20 px-4 sm:px-6 lg:px-8">
@@ -15,9 +16,10 @@ const About: React.FC = () => {
           <FadeIn delay={200}>
             <div className="aspect-[4/5] bg-stone-200 overflow-hidden shadow-lg">
               <img 
-                src={profile.profileImage} 
+                src={src} 
                 alt={profile.name} 
                 className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                style={style}
               />
             </div>
           </FadeIn>
@@ -66,7 +68,7 @@ const About: React.FC = () => {
                       <div key={t.id} className="bg-white p-6 rounded-lg shadow-sm border border-stone-100">
                          <p className="font-serif text-lg italic text-stone-600 mb-6 leading-relaxed">"{t.text}"</p>
                          <div className="flex items-center gap-4">
-                            <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full object-cover bg-stone-200" />
+                            <img src={processImage(t.avatar).src} style={processImage(t.avatar).style} alt={t.name} className="w-10 h-10 rounded-full object-cover bg-stone-200" />
                             <div>
                                <p className="font-sans text-xs font-bold text-stone-900 uppercase tracking-wide">{t.name}</p>
                                {t.role && <p className="font-sans text-[10px] text-stone-400 uppercase tracking-widest">{t.role}</p>}

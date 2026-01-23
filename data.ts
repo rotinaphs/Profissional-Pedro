@@ -18,6 +18,12 @@ export const initialData: AppData = {
       subtitle: '14px',
       caption: '16px',
     },
+    elementStyles: {
+      title: { font: '"Cormorant Garamond", serif', color: '#1c1917' },
+      subtitle: { font: '"Cormorant Garamond", serif', color: '#78716c' },
+      text: { font: '"Cormorant Garamond", serif', color: '#1c1917' },
+      caption: { font: '"Montserrat", sans-serif', color: '#ffffff' },
+    },
     heroImage: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80"
   },
   home: {

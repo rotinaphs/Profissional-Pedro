@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { useData } from '../context/DataContext';
+import { useData, processImage } from '../context/DataContext';
 
 const WritingDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -12,6 +12,8 @@ const WritingDetail: React.FC = () => {
     return <Navigate to="/writings" replace />;
   }
 
+  const { src, style } = processImage(work.coverImage);
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Header */}
@@ -19,8 +21,11 @@ const WritingDetail: React.FC = () => {
         {work.coverImage && (
           <>
             <div 
-              className="absolute inset-0 bg-cover bg-center opacity-50"
-              style={{ backgroundImage: `url(${work.coverImage})` }}
+              className="absolute inset-0 bg-cover bg-no-repeat opacity-50"
+              style={{ 
+                  backgroundImage: `url(${src})`,
+                  backgroundPosition: style.backgroundPosition || 'center'
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-stone-900 to-transparent" />
           </>

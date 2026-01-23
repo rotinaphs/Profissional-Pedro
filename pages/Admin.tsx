@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { useData } from '../context/DataContext';
-import { Plus, Trash2, Save, LogOut, ChevronDown, ChevronRight, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, RefreshCw, Menu } from 'lucide-react';
+import { useData, processImage } from '../context/DataContext';
+import { initialData } from '../data';
+import { Plus, Trash2, Save, LogOut, ChevronDown, ChevronRight, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, RefreshCw, Menu, RotateCcw, Target } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
@@ -216,34 +217,67 @@ const FeedbackSaveButton: React.FC<{ onClick: () => Promise<void> | void; status
   );
 };
 
-// --- Optimized Image Input ---
+// --- Optimized Image Input with Focal Point Picker ---
 const ImageInput: React.FC<{ label: string; value: string; onChange: (val: string) => void; className?: string; }> = ({ label, value, onChange, className }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const { isUploading, error, handleUpload } = useUpload();
+  const { src, style } = processImage(value);
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleUpload(e.target.files?.[0], (url) => {
+        // Keeps existing focus if changing image? No, reset.
         onChange(url);
         if (fileInputRef.current) fileInputRef.current.value = '';
     });
+  };
+
+  const onImageClick = (e: React.MouseEvent<HTMLImageElement>) => {
+      if (!imageRef.current) return;
+      const rect = imageRef.current.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      
+      const separator = src.includes('?') ? '&' : '?';
+      // Use toFixed to keep URL cleaner
+      onChange(`${src}${separator}pos=${x.toFixed(0)},${y.toFixed(0)}`);
   };
 
   return (
     <div className={`space-y-2 ${className}`}>
       <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">{label}</label>
       <div className="flex gap-4 items-start">
-        <div className="relative group w-24 h-24 flex-shrink-0 bg-stone-100 rounded-lg border border-stone-200 overflow-hidden flex items-center justify-center">
-          {isUploading ? <Loader2 className="animate-spin text-stone-400" size={24}/> : value ? <><img src={value} alt="Preview" className="w-full h-full object-cover" /><button onClick={() => onChange('')} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button></> : <ImageIcon className="text-stone-300" size={32} />}
+        <div className="relative group w-32 h-32 flex-shrink-0 bg-stone-100 rounded-lg border border-stone-200 overflow-hidden flex items-center justify-center cursor-crosshair">
+          {isUploading ? <Loader2 className="animate-spin text-stone-400" size={24}/> : value ? (
+            <>
+                <img 
+                    ref={imageRef}
+                    src={src} 
+                    alt="Preview" 
+                    className="w-full h-full object-cover" 
+                    style={style}
+                    onClick={onImageClick}
+                    title="Clique para definir o ponto de foco"
+                />
+                {/* Focal Point Indicator */}
+                <div 
+                    className="absolute w-3 h-3 bg-red-500 rounded-full border border-white shadow-sm pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-all duration-200"
+                    style={{ left: style.objectPosition?.toString().split(' ')[0] || '50%', top: style.objectPosition?.toString().split(' ')[1] || '50%' }}
+                />
+                <button onClick={() => onChange('')} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"><X size={12} /></button>
+            </>
+          ) : <ImageIcon className="text-stone-300" size={32} />}
         </div>
         <div className="flex-1 space-y-3">
            <div className="flex flex-col gap-2">
               <div className="flex gap-2">
                 <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="bg-stone-200 text-stone-700 px-4 py-2 rounded text-xs font-bold uppercase tracking-wide hover:bg-stone-300 transition-colors flex items-center gap-2 disabled:opacity-50">
-                    <Upload size={14} /> {isUploading ? 'Enviando...' : 'Upload Alta Resolução'}
+                    <Upload size={14} /> {isUploading ? 'Enviando...' : 'Upload'}
                 </button>
                 <input type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept="image/*" />
               </div>
               {error && <div className="flex items-center gap-2 text-xs text-red-500 font-bold bg-red-50 p-2 rounded"><AlertTriangle size={14} /> {error}</div>}
+              {value && <p className="text-[10px] text-stone-400 flex items-center gap-1"><Target size={10} /> Clique na imagem para ajustar o foco.</p>}
            </div>
            <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg text-xs outline-none" placeholder="Ou cole URL..." />
         </div>
@@ -252,31 +286,55 @@ const ImageInput: React.FC<{ label: string; value: string; onChange: (val: strin
   );
 };
 
-// --- Optimized Photo Item Card (Previously ChecklistItemCard concept) ---
+// --- Optimized Photo Item Card with Focus ---
 const PhotoItemEditor = React.memo(({ photo, albumId, updatePhoto, removePhoto }: { photo: any, albumId: string, updatePhoto: any, removePhoto: any }) => {
     const { isUploading, error, handleUpload } = useUpload();
+    const imageRef = useRef<HTMLImageElement>(null);
+    const { src, style } = processImage(photo.src);
   
-    // Use callback to avoid creating function on every render if not needed, though handleUpload is already stable
     const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
        handleUpload(e.target.files?.[0], (url) => updatePhoto(albumId, photo.id, 'src', url));
     };
 
-    // Error handling inside the item
+    const onImageClick = (e: React.MouseEvent<HTMLImageElement>) => {
+        if (!imageRef.current || !photo.src) return;
+        const rect = imageRef.current.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        
+        const separator = src.includes('?') ? '&' : '?';
+        updatePhoto(albumId, photo.id, 'src', `${src}${separator}pos=${x.toFixed(0)},${y.toFixed(0)}`);
+    };
+
     useEffect(() => {
-        if (error) alert(error); // Simple alert for list items to avoid layout shifts
+        if (error) alert(error); 
     }, [error]);
   
     return (
       <div className="flex gap-4 items-start bg-stone-50 p-3 rounded-lg border border-stone-100">
-         <div className="relative group w-20 h-20 flex-shrink-0 bg-stone-200 rounded overflow-hidden flex items-center justify-center">
+         <div className="relative group w-20 h-20 flex-shrink-0 bg-stone-200 rounded overflow-hidden flex items-center justify-center cursor-crosshair">
              {isUploading ? (
                  <Loader2 className="animate-spin text-stone-400" />
              ) : (
                  <>
-                    <img src={photo.src} className="w-full h-full object-cover" alt="thumb" />
-                    <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                       <Upload className="text-white" size={16} />
-                       <input type="file" className="hidden" accept="image/*" onChange={onUpload} disabled={isUploading} />
+                    <img 
+                        ref={imageRef}
+                        src={src} 
+                        className="w-full h-full object-cover" 
+                        alt="thumb"
+                        style={style}
+                        onClick={onImageClick}
+                        title="Clique para definir o ponto de foco"
+                    />
+                    <div 
+                        className="absolute w-2 h-2 bg-red-500 rounded-full border border-white pointer-events-none transform -translate-x-1/2 -translate-y-1/2"
+                        style={{ left: style.objectPosition?.toString().split(' ')[0] || '50%', top: style.objectPosition?.toString().split(' ')[1] || '50%' }}
+                    />
+                    <label className="absolute inset-0 flex items-end justify-end p-1 opacity-0 group-hover:opacity-100 pointer-events-none">
+                       <div className="bg-black/50 text-white p-1 rounded pointer-events-auto cursor-pointer">
+                           <Upload size={12} />
+                           <input type="file" className="hidden" accept="image/*" onChange={onUpload} disabled={isUploading} />
+                       </div>
                     </label>
                  </>
              )}
@@ -289,7 +347,6 @@ const PhotoItemEditor = React.memo(({ photo, albumId, updatePhoto, removePhoto }
       </div>
     );
 }, (prev, next) => {
-    // Custom comparison for Memo: Only re-render if THIS specific photo's data changed
     return prev.photo.src === next.photo.src && 
            prev.photo.caption === next.photo.caption && 
            prev.photo.id === next.photo.id;
@@ -429,7 +486,7 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any }> = ({ album
            <div key={album.id} className="bg-white border border-stone-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
              <div className="bg-stone-50 p-5 flex justify-between items-center cursor-pointer hover:bg-stone-100" onClick={() => setExpandedAlbum(expandedAlbum === album.id ? null : album.id)}>
                 <div className="flex items-center gap-6">
-                  <div className="w-16 h-12 rounded bg-stone-300 overflow-hidden"><img src={album.coverImage} className="w-full h-full object-cover" alt="cover" /></div>
+                  <div className="w-16 h-12 rounded bg-stone-300 overflow-hidden"><img src={processImage(album.coverImage).src} className="w-full h-full object-cover" style={processImage(album.coverImage).style} alt="cover" /></div>
                   <div><h3 className="font-bold text-stone-800 text-lg">{album.title}</h3><p className="text-xs text-stone-500 font-medium uppercase tracking-wider">{album.photos.length} FOTOS • {album.date}</p></div>
                 </div>
                 <div className="flex items-center gap-4"><button onClick={(e) => {e.stopPropagation(); removeAlbum(album.id)}} className="p-2 text-stone-400 hover:text-red-500"><Trash2 size={18}/></button>{expandedAlbum === album.id ? <ChevronDown size={20} className="text-stone-400"/> : <ChevronRight size={20} className="text-stone-400"/>}</div>
@@ -535,7 +592,7 @@ const TestimonialsEditor: React.FC<{ testimonials: any[], updateTestimonials: an
 
        <div className="flex flex-col md:flex-row gap-8 flex-1 overflow-hidden">
            <div className="w-full md:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-10">
-              {localTestimonials.map(t => (<div key={t.id} onClick={() => setEditingId(t.id)} className={`p-4 rounded-xl cursor-pointer border flex items-center gap-4 ${editingId === t.id ? 'bg-[#1c1917] text-white' : 'bg-white border-stone-100 hover:border-stone-300'}`}><img src={t.avatar || 'https://via.placeholder.com/50'} className="w-10 h-10 rounded-full" /><div><h3 className="font-bold text-sm">{t.name}</h3></div></div>))}
+              {localTestimonials.map(t => (<div key={t.id} onClick={() => setEditingId(t.id)} className={`p-4 rounded-xl cursor-pointer border flex items-center gap-4 ${editingId === t.id ? 'bg-[#1c1917] text-white' : 'bg-white border-stone-100 hover:border-stone-300'}`}><img src={processImage(t.avatar).src} style={processImage(t.avatar).style} className="w-10 h-10 rounded-full object-cover" /><div><h3 className="font-bold text-sm">{t.name}</h3></div></div>))}
            </div>
            <div className="w-full md:w-2/3 bg-white rounded-2xl shadow-sm border border-stone-200 flex flex-col overflow-hidden relative">
              {currentEdit ? (
@@ -563,9 +620,27 @@ const ThemeEditor: React.FC<{ theme: any, updateTheme: any }> = ({ theme, update
   const [localTheme, setLocalTheme] = useState(theme);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
   const save = async () => { setSaveStatus('saving'); updateTheme(localTheme); await new Promise(r => setTimeout(r, 800)); setSaveStatus('success'); setTimeout(() => setSaveStatus('idle'), 3000); };
+  
   const updateColor = (key: string, value: string) => setLocalTheme({ ...localTheme, colors: { ...localTheme.colors, [key]: value }});
   const updateFont = (key: string, value: string) => setLocalTheme({ ...localTheme, fonts: { ...localTheme.fonts, [key]: value }});
-  const updateFontSize = (key: string, value: string) => setLocalTheme({ ...localTheme, fontSizes: { ...localTheme.fontSizes, [key]: value }});
+  const updateElementStyle = (element: string, field: string, value: string) => {
+     setLocalTheme({
+        ...localTheme,
+        elementStyles: {
+           ...localTheme.elementStyles,
+           [element]: {
+              ...localTheme.elementStyles?.[element],
+              [field]: value
+           }
+        }
+     });
+  };
+
+  const resetToDefaults = () => {
+    if (window.confirm("Tem certeza que deseja restaurar a aparência padrão? Isso substituirá todas as cores, fontes e estilos atuais.")) {
+      setLocalTheme(initialData.theme);
+    }
+  };
 
   return (
     <div className="max-w-2xl h-full flex flex-col">
@@ -583,17 +658,57 @@ const ThemeEditor: React.FC<{ theme: any, updateTheme: any }> = ({ theme, update
           </div>
         </div>
         <div className="pt-8 border-t border-stone-100">
-          <h3 className="font-bold text-stone-800 mb-6 text-lg">Tipografia</h3>
+          <h3 className="font-bold text-stone-800 mb-6 text-lg">Tipografia Base</h3>
           <div className="space-y-6">
              <div className="space-y-2"><label className="block text-xs uppercase tracking-wider text-stone-400 mb-1">Serif</label><input type="text" value={localTheme.fonts.serif} onChange={e => updateFont('serif', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg font-mono text-sm" /></div>
              <div className="space-y-2"><label className="block text-xs uppercase tracking-wider text-stone-400 mb-1">Sans</label><input type="text" value={localTheme.fonts.sans} onChange={e => updateFont('sans', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg font-mono text-sm" /></div>
           </div>
         </div>
+
+        {/* New Section: Element Styles */}
+        <div className="pt-8 border-t border-stone-100">
+          <h3 className="font-bold text-stone-800 mb-6 text-lg">Estilos de Elementos</h3>
+          <div className="space-y-8">
+            {['title', 'subtitle', 'text', 'caption'].map((elem) => (
+                <div key={elem} className="p-4 bg-stone-50 rounded-lg border border-stone-100">
+                    <h4 className="font-bold text-sm uppercase tracking-widest text-stone-600 mb-4">{elem === 'title' ? 'Títulos Principais' : elem === 'subtitle' ? 'Subtítulos / Datas' : elem === 'caption' ? 'Legendas / Overlays' : 'Textos / Corpo'}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="block text-[10px] uppercase tracking-wider text-stone-400 font-bold">Fonte</label>
+                            <input 
+                                type="text" 
+                                value={localTheme.elementStyles?.[elem]?.font || ''} 
+                                onChange={e => updateElementStyle(elem, 'font', e.target.value)} 
+                                className="w-full p-2 border border-stone-200 rounded text-sm font-mono placeholder-stone-300"
+                                placeholder='Ex: "Inter", sans-serif'
+                            />
+                        </div>
+                        <div className="space-y-2">
+                             <label className="block text-[10px] uppercase tracking-wider text-stone-400 font-bold">Cor</label>
+                             <div className="flex gap-2 items-center">
+                                <input type="color" value={localTheme.elementStyles?.[elem]?.color || '#000000'} onChange={e => updateElementStyle(elem, 'color', e.target.value)} className="h-9 w-9 p-0.5 border border-stone-200 rounded cursor-pointer" />
+                                <input type="text" value={localTheme.elementStyles?.[elem]?.color || ''} onChange={e => updateElementStyle(elem, 'color', e.target.value)} className="flex-1 p-2 border border-stone-200 rounded text-sm font-mono uppercase" />
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+          </div>
+        </div>
+
         <div className="pt-8 border-t border-stone-100">
            <h3 className="font-bold text-stone-800 mb-6 text-lg">Imagem de Capa (Home)</h3>
            <ImageInput label="Hero Image" value={localTheme.heroImage || ''} onChange={(val) => setLocalTheme({...localTheme, heroImage: val})} />
         </div>
-        <div className="pt-8"><FeedbackSaveButton status={saveStatus} onClick={save} label="Salvar & Aplicar" className="w-full h-14" /></div>
+        <div className="pt-8 flex gap-4">
+           <button 
+              onClick={resetToDefaults}
+              className="px-6 py-3 rounded-lg border border-stone-200 text-stone-500 font-bold text-xs uppercase tracking-widest hover:bg-stone-100 hover:text-stone-900 transition-colors flex items-center gap-2"
+           >
+              <RotateCcw size={16} /> Restaurar Padrões
+           </button>
+           <FeedbackSaveButton status={saveStatus} onClick={save} label="Salvar & Aplicar" className="flex-1 h-14" />
+        </div>
       </div>
     </div>
   );
@@ -615,31 +730,32 @@ const MaintenancePanel: React.FC = () => {
         const usedUrls = new Set<string>();
         
         // Perfil
-        if (profile.profileImage) usedUrls.add(profile.profileImage);
+        if (profile.profileImage) usedUrls.add(processImage(profile.profileImage).src);
         
         // Tema
-        if (theme.heroImage) usedUrls.add(theme.heroImage);
+        if (theme.heroImage) usedUrls.add(processImage(theme.heroImage).src);
         
         // Álbuns
         albums.forEach(album => {
-            if (album.coverImage) usedUrls.add(album.coverImage);
-            album.photos.forEach(photo => usedUrls.add(photo.src));
+            if (album.coverImage) usedUrls.add(processImage(album.coverImage).src);
+            album.photos.forEach(photo => usedUrls.add(processImage(photo.src).src));
         });
 
         // Escritos
         writings.forEach(writing => {
-            if (writing.coverImage) usedUrls.add(writing.coverImage);
+            if (writing.coverImage) usedUrls.add(processImage(writing.coverImage).src);
             // Regex simples para extrair URLs de imagens dentro do HTML do content
             const imgRegex = /src="([^"]+)"/g;
             let match;
             while ((match = imgRegex.exec(writing.content)) !== null) {
-                usedUrls.add(match[1]);
+                // Tenta extrair src puro se houver parâmetros
+                usedUrls.add(processImage(match[1]).src);
             }
         });
 
         // Depoimentos
         testimonials.forEach(testimonial => {
-            if (testimonial.avatar) usedUrls.add(testimonial.avatar);
+            if (testimonial.avatar) usedUrls.add(processImage(testimonial.avatar).src);
         });
 
         // 2. Listar arquivos do Storage
@@ -654,7 +770,6 @@ const MaintenancePanel: React.FC = () => {
             // 3. Filtrar órfãos
             const orphans = files.filter(file => {
                 // Verificamos se o nome do arquivo aparece em alguma das URLs usadas
-                // A URL pública do supabase contém o nome do arquivo no final.
                 return !Array.from(usedUrls).some(url => url.includes(file.name));
             });
 
