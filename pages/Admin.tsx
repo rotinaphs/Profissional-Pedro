@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useData } from '../context/DataContext';
-import { Plus, Trash2, Save, LogOut, ChevronDown, ChevronRight, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Save, LogOut, ChevronDown, ChevronRight, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
@@ -86,6 +86,7 @@ const Admin: React.FC = () => {
     { id: 'writings', label: 'Escritos', icon: <BookOpen size={20} /> },
     { id: 'testimonials', label: 'Depoimentos', icon: <MessageSquareQuote size={20} /> },
     { id: 'theme', label: 'Aparência', icon: <Settings size={20} /> },
+    { id: 'maintenance', label: 'Manutenção', icon: <HardDrive size={20} /> },
   ];
 
   if (loading) return <div className="min-h-screen bg-stone-50 flex items-center justify-center"><Loader2 className="animate-spin text-stone-900" size={32} /></div>;
@@ -146,6 +147,7 @@ const Admin: React.FC = () => {
             {activeTab === 'writings' && <WritingsEditor writings={writings} updateWritings={updateWritings} />}
             {activeTab === 'testimonials' && <TestimonialsEditor testimonials={testimonials} updateTestimonials={updateTestimonials} />}
             {activeTab === 'theme' && <ThemeEditor theme={theme} updateTheme={updateTheme} />}
+            {activeTab === 'maintenance' && <MaintenancePanel />}
          </div>
       </main>
     </div>
@@ -326,11 +328,42 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any }> = ({ album
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
 
   const save = async () => { setSaveStatus('saving'); updateAlbums(localAlbums); await new Promise(r => setTimeout(r, 800)); setSaveStatus('success'); setTimeout(() => setSaveStatus('idle'), 3000); };
-  const addAlbum = () => { const newAlbum = { id: `new-album-${Date.now()}`, title: "Novo Álbum", description: "Descrição...", date: new Date().getFullYear().toString(), coverImage: "https://picsum.photos/800/600", photos: [] }; setLocalAlbums([newAlbum, ...localAlbums]); setExpandedAlbum(newAlbum.id); };
-  const removeAlbum = (id: string) => { if(window.confirm("Deletar álbum?")) setLocalAlbums(localAlbums.filter(a => a.id !== id)); };
-  const updateAlbumField = (id: string, field: string, value: string) => { setLocalAlbums(localAlbums.map(a => a.id === id ? { ...a, [field]: value } : a)); };
-  const addPhoto = (albumId: string) => { setLocalAlbums(localAlbums.map(a => { if (a.id === albumId) { return { ...a, photos: [...a.photos, { id: `p-${Date.now()}`, src: "https://picsum.photos/1200/800", alt: "Nova foto", caption: "" }] }; } return a; })); };
-  const removePhoto = (albumId: string, photoId: string) => { setLocalAlbums(localAlbums.map(a => { if (a.id === albumId) { return { ...a, photos: a.photos.filter((p: any) => p.id !== photoId) }; } return a; })); };
+  
+  // Use functional updates to prevent stale state issues with closures (especially important for removePhoto inside memoized components)
+  const addAlbum = () => { 
+    const newAlbum = { id: `new-album-${Date.now()}`, title: "Novo Álbum", description: "Descrição...", date: new Date().getFullYear().toString(), coverImage: "https://picsum.photos/800/600", photos: [] }; 
+    setLocalAlbums(prev => [newAlbum, ...prev]); 
+    setExpandedAlbum(newAlbum.id); 
+  };
+  
+  const removeAlbum = (id: string) => { 
+    if(window.confirm("Deletar álbum?")) {
+      setLocalAlbums(prev => prev.filter(a => a.id !== id)); 
+    }
+  };
+  
+  const updateAlbumField = (id: string, field: string, value: string) => { 
+    setLocalAlbums(prev => prev.map(a => a.id === id ? { ...a, [field]: value } : a)); 
+  };
+  
+  const addPhoto = (albumId: string) => { 
+    setLocalAlbums(prev => prev.map(a => { 
+      if (a.id === albumId) { 
+        return { ...a, photos: [...a.photos, { id: `p-${Date.now()}`, src: "https://picsum.photos/1200/800", alt: "Nova foto", caption: "" }] }; 
+      } 
+      return a; 
+    })); 
+  };
+  
+  const removePhoto = useCallback((albumId: string, photoId: string) => { 
+    setLocalAlbums(prev => prev.map(a => { 
+      if (a.id === albumId) { 
+        return { ...a, photos: a.photos.filter((p: any) => p.id !== photoId) }; 
+      } 
+      return a; 
+    })); 
+  }, []);
+  
   const updatePhoto = useCallback((albumId: string, photoId: string, field: string, value: string) => {
      setLocalAlbums(prev => prev.map(a => {
         if (a.id !== albumId) return a;
@@ -398,30 +431,38 @@ const WritingsEditor: React.FC<{ writings: any[], updateWritings: any }> = ({ wr
   const currentEdit = localWritings.find(w => w.id === editingId);
 
   return (
-    <div className="flex flex-col md:flex-row gap-8 h-[calc(100vh-6rem)]">
-       <div className="w-full md:w-1/3 flex flex-col gap-6">
-          <div className="flex justify-between items-center px-1"><h2 className="text-2xl font-serif font-bold text-stone-900">Escritos</h2><button onClick={addWriting} className="w-10 h-10 flex items-center justify-center bg-stone-200 rounded-lg hover:bg-stone-300 transition-colors text-stone-700"><Plus size={20}/></button></div>
-          <div className="flex-1 overflow-y-auto space-y-4 pr-2">{localWritings.map(w => (<div key={w.id} onClick={() => setEditingId(w.id)} className={`p-6 rounded-xl cursor-pointer border transition-all duration-300 ${editingId === w.id ? 'bg-[#1c1917] text-white border-transparent shadow-xl scale-[1.02]' : 'bg-white border-stone-100 hover:border-stone-300'}`}><h3 className="font-serif text-lg font-bold mb-2 line-clamp-1">{w.title}</h3><p className={`text-[10px] uppercase tracking-widest font-medium ${editingId === w.id ? 'text-stone-400' : 'text-stone-500'}`}>{w.category} • {w.date}</p></div>))}</div>
+    <div className="flex flex-col h-full">
+       <div className="flex justify-between items-center mb-8 flex-shrink-0">
+         <h2 className="text-3xl font-serif font-bold text-stone-900">Escritos</h2>
+         <div className="flex gap-3">
+            <button onClick={addWriting} className="bg-stone-200 text-stone-800 px-5 py-2.5 rounded-lg hover:bg-stone-300 flex items-center justify-center gap-2 transition-colors font-medium"><Plus size={18} /> Novo Texto</button>
+            <FeedbackSaveButton status={saveStatus} onClick={save} label="Salvar Tudo" className="px-5 py-2.5 min-w-[150px]" />
+         </div>
        </div>
-       <div className="w-full md:w-2/3 bg-white rounded-2xl shadow-sm border border-stone-200 flex flex-col overflow-hidden relative">
-         {currentEdit ? (
-           <div className="flex flex-col h-full">
-             <div className="p-8 border-b border-stone-100 space-y-6">
-                 <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">EDITANDO</span><div className="flex items-center gap-4"><button onClick={() => removeWriting(currentEdit.id)} className="text-red-400 hover:text-red-600 text-xs flex items-center gap-2 uppercase tracking-wider font-bold"><Trash2 size={16}/> Apagar</button></div></div>
-                 <input type="text" value={currentEdit.title} onChange={e => updateWritingField(currentEdit.id, 'title', e.target.value)} className="w-full text-4xl font-serif font-bold text-stone-900 placeholder-stone-300 outline-none bg-transparent" placeholder="Título" />
-             </div>
-             <div className="flex-1 overflow-y-auto p-8 space-y-8">
-                 <div className="grid grid-cols-2 gap-8">
-                   <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Categoria</label><input type="text" value={currentEdit.category} onChange={e => updateWritingField(currentEdit.id, 'category', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg" /></div>
-                   <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Data</label><input type="text" value={currentEdit.date} onChange={e => updateWritingField(currentEdit.id, 'date', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg" /></div>
-                 </div>
-                 <ImageInput label="Capa" value={currentEdit.coverImage || ''} onChange={(val) => updateWritingField(currentEdit.id, 'coverImage', val)} />
-                 <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Resumo</label><textarea value={currentEdit.excerpt} onChange={e => updateWritingField(currentEdit.id, 'excerpt', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg h-32 resize-none" /></div>
-                 <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Conteúdo (HTML)</label><textarea value={currentEdit.content} onChange={e => updateWritingField(currentEdit.id, 'content', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg font-mono text-sm h-80 bg-stone-50" /></div>
-             </div>
-             <div className="p-6 bg-stone-50 border-t border-stone-100"><FeedbackSaveButton status={saveStatus} onClick={save} className="w-full" /></div>
+
+       <div className="flex flex-col md:flex-row gap-8 flex-1 overflow-hidden">
+           <div className="w-full md:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-10">
+              {localWritings.map(w => (<div key={w.id} onClick={() => setEditingId(w.id)} className={`p-6 rounded-xl cursor-pointer border transition-all duration-300 ${editingId === w.id ? 'bg-[#1c1917] text-white border-transparent shadow-xl scale-[1.02]' : 'bg-white border-stone-100 hover:border-stone-300'}`}><h3 className="font-serif text-lg font-bold mb-2 line-clamp-1">{w.title}</h3><p className={`text-[10px] uppercase tracking-widest font-medium ${editingId === w.id ? 'text-stone-400' : 'text-stone-500'}`}>{w.category} • {w.date}</p></div>))}
            </div>
-         ) : <div className="flex flex-col items-center justify-center h-full text-stone-400"><BookOpen size={64} strokeWidth={0.5} className="mb-6 opacity-20 text-stone-900"/><p className="text-xl font-serif text-stone-400">Selecione um texto</p></div>}
+           <div className="w-full md:w-2/3 bg-white rounded-2xl shadow-sm border border-stone-200 flex flex-col overflow-hidden relative">
+             {currentEdit ? (
+               <div className="flex flex-col h-full">
+                 <div className="p-8 border-b border-stone-100 space-y-6">
+                     <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">EDITANDO</span><div className="flex items-center gap-4"><button onClick={() => removeWriting(currentEdit.id)} className="text-red-400 hover:text-red-600 text-xs flex items-center gap-2 uppercase tracking-wider font-bold"><Trash2 size={16}/> Apagar</button></div></div>
+                     <input type="text" value={currentEdit.title} onChange={e => updateWritingField(currentEdit.id, 'title', e.target.value)} className="w-full text-4xl font-serif font-bold text-stone-900 placeholder-stone-300 outline-none bg-transparent" placeholder="Título" />
+                 </div>
+                 <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                     <div className="grid grid-cols-2 gap-8">
+                       <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Categoria</label><input type="text" value={currentEdit.category} onChange={e => updateWritingField(currentEdit.id, 'category', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg" /></div>
+                       <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Data</label><input type="text" value={currentEdit.date} onChange={e => updateWritingField(currentEdit.id, 'date', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg" /></div>
+                     </div>
+                     <ImageInput label="Capa" value={currentEdit.coverImage || ''} onChange={(val) => updateWritingField(currentEdit.id, 'coverImage', val)} />
+                     <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Resumo</label><textarea value={currentEdit.excerpt} onChange={e => updateWritingField(currentEdit.id, 'excerpt', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg h-32 resize-none" /></div>
+                     <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Conteúdo (HTML)</label><textarea value={currentEdit.content} onChange={e => updateWritingField(currentEdit.id, 'content', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg font-mono text-sm h-80 bg-stone-50" /></div>
+                 </div>
+               </div>
+             ) : <div className="flex flex-col items-center justify-center h-full text-stone-400"><BookOpen size={64} strokeWidth={0.5} className="mb-6 opacity-20 text-stone-900"/><p className="text-xl font-serif text-stone-400">Selecione um texto</p></div>}
+           </div>
        </div>
     </div>
   );
@@ -439,28 +480,36 @@ const TestimonialsEditor: React.FC<{ testimonials: any[], updateTestimonials: an
   const currentEdit = localTestimonials.find(t => t.id === editingId);
 
   return (
-    <div className="flex flex-col md:flex-row gap-8 h-[calc(100vh-6rem)]">
-       <div className="w-full md:w-1/3 flex flex-col gap-6">
-          <div className="flex justify-between items-center px-1"><h2 className="text-2xl font-serif font-bold text-stone-900">Depoimentos</h2><button onClick={addTestimonial} className="w-10 h-10 flex items-center justify-center bg-stone-200 rounded-lg hover:bg-stone-300 transition-colors text-stone-700"><Plus size={20}/></button></div>
-          <div className="flex-1 overflow-y-auto space-y-4 pr-2">{localTestimonials.map(t => (<div key={t.id} onClick={() => setEditingId(t.id)} className={`p-4 rounded-xl cursor-pointer border flex items-center gap-4 ${editingId === t.id ? 'bg-[#1c1917] text-white' : 'bg-white border-stone-100 hover:border-stone-300'}`}><img src={t.avatar || 'https://via.placeholder.com/50'} className="w-10 h-10 rounded-full" /><div><h3 className="font-bold text-sm">{t.name}</h3></div></div>))}</div>
+    <div className="flex flex-col h-full">
+       <div className="flex justify-between items-center mb-8 flex-shrink-0">
+         <h2 className="text-3xl font-serif font-bold text-stone-900">Depoimentos</h2>
+         <div className="flex gap-3">
+            <button onClick={addTestimonial} className="bg-stone-200 text-stone-800 px-5 py-2.5 rounded-lg hover:bg-stone-300 flex items-center justify-center gap-2 transition-colors font-medium"><Plus size={18} /> Novo</button>
+            <FeedbackSaveButton status={saveStatus} onClick={save} label="Salvar Tudo" className="px-5 py-2.5 min-w-[150px]" />
+         </div>
        </div>
-       <div className="w-full md:w-2/3 bg-white rounded-2xl shadow-sm border border-stone-200 flex flex-col overflow-hidden relative">
-         {currentEdit ? (
-           <div className="flex flex-col h-full">
-             <div className="p-8 border-b border-stone-100 space-y-6">
-                 <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">EDITANDO</span><button onClick={() => removeTestimonial(currentEdit.id)} className="text-red-400"><Trash2 size={16}/> Apagar</button></div>
-                 <input type="text" value={currentEdit.name} onChange={e => updateField(currentEdit.id, 'name', e.target.value)} className="w-full text-3xl font-serif font-bold" placeholder="Nome" />
-             </div>
-             <div className="flex-1 overflow-y-auto p-8 space-y-8">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                   <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Cargo</label><input type="text" value={currentEdit.role || ''} onChange={e => updateField(currentEdit.id, 'role', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg" /></div>
-                   <ImageInput label="Foto" value={currentEdit.avatar} onChange={(val) => updateField(currentEdit.id, 'avatar', val)} />
-                 </div>
-                 <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Depoimento</label><textarea value={currentEdit.text} onChange={e => updateField(currentEdit.id, 'text', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg h-60" /></div>
-             </div>
-             <div className="p-6 bg-stone-50 border-t border-stone-100"><FeedbackSaveButton status={saveStatus} onClick={save} className="w-full" /></div>
+
+       <div className="flex flex-col md:flex-row gap-8 flex-1 overflow-hidden">
+           <div className="w-full md:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-10">
+              {localTestimonials.map(t => (<div key={t.id} onClick={() => setEditingId(t.id)} className={`p-4 rounded-xl cursor-pointer border flex items-center gap-4 ${editingId === t.id ? 'bg-[#1c1917] text-white' : 'bg-white border-stone-100 hover:border-stone-300'}`}><img src={t.avatar || 'https://via.placeholder.com/50'} className="w-10 h-10 rounded-full" /><div><h3 className="font-bold text-sm">{t.name}</h3></div></div>))}
            </div>
-         ) : <div className="flex flex-col items-center justify-center h-full text-stone-400"><MessageSquareQuote size={64} className="mb-6 opacity-20"/><p>Selecione um depoimento</p></div>}
+           <div className="w-full md:w-2/3 bg-white rounded-2xl shadow-sm border border-stone-200 flex flex-col overflow-hidden relative">
+             {currentEdit ? (
+               <div className="flex flex-col h-full">
+                 <div className="p-8 border-b border-stone-100 space-y-6">
+                     <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">EDITANDO</span><button onClick={() => removeTestimonial(currentEdit.id)} className="text-red-400"><Trash2 size={16}/> Apagar</button></div>
+                     <input type="text" value={currentEdit.name} onChange={e => updateField(currentEdit.id, 'name', e.target.value)} className="w-full text-3xl font-serif font-bold" placeholder="Nome" />
+                 </div>
+                 <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Cargo</label><input type="text" value={currentEdit.role || ''} onChange={e => updateField(currentEdit.id, 'role', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg" /></div>
+                       <ImageInput label="Foto" value={currentEdit.avatar} onChange={(val) => updateField(currentEdit.id, 'avatar', val)} />
+                     </div>
+                     <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Depoimento</label><textarea value={currentEdit.text} onChange={e => updateField(currentEdit.id, 'text', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg h-60" /></div>
+                 </div>
+               </div>
+             ) : <div className="flex flex-col items-center justify-center h-full text-stone-400"><MessageSquareQuote size={64} className="mb-6 opacity-20"/><p>Selecione um depoimento</p></div>}
+           </div>
        </div>
     </div>
   );
@@ -504,6 +553,186 @@ const ThemeEditor: React.FC<{ theme: any, updateTheme: any }> = ({ theme, update
       </div>
     </div>
   );
+};
+
+const MaintenancePanel: React.FC = () => {
+    const { profile, albums, writings, testimonials, theme } = useData();
+    const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'done'>('idle');
+    const [orphanedImages, setOrphanedImages] = useState<any[]>([]);
+    const [selectedOrphans, setSelectedOrphans] = useState<string[]>([]);
+    const [deleting, setDeleting] = useState(false);
+
+    const scanImages = async () => {
+        setScanStatus('scanning');
+        setOrphanedImages([]);
+        setSelectedOrphans([]);
+        
+        // 1. Coletar todas as URLs usadas
+        const usedUrls = new Set<string>();
+        
+        // Perfil
+        if (profile.profileImage) usedUrls.add(profile.profileImage);
+        
+        // Tema
+        if (theme.heroImage) usedUrls.add(theme.heroImage);
+        
+        // Álbuns
+        albums.forEach(album => {
+            if (album.coverImage) usedUrls.add(album.coverImage);
+            album.photos.forEach(photo => usedUrls.add(photo.src));
+        });
+
+        // Escritos
+        writings.forEach(writing => {
+            if (writing.coverImage) usedUrls.add(writing.coverImage);
+            // Regex simples para extrair URLs de imagens dentro do HTML do content
+            const imgRegex = /src="([^"]+)"/g;
+            let match;
+            while ((match = imgRegex.exec(writing.content)) !== null) {
+                usedUrls.add(match[1]);
+            }
+        });
+
+        // Depoimentos
+        testimonials.forEach(testimonial => {
+            if (testimonial.avatar) usedUrls.add(testimonial.avatar);
+        });
+
+        // 2. Listar arquivos do Storage
+        try {
+            const { data: files, error } = await supabase.storage.from('portfolio-images').list('', { limit: 1000 });
+            if (error) throw error;
+            if (!files) {
+                setScanStatus('done');
+                return;
+            }
+
+            // 3. Filtrar órfãos
+            const orphans = files.filter(file => {
+                // Verificamos se o nome do arquivo aparece em alguma das URLs usadas
+                // A URL pública do supabase contém o nome do arquivo no final.
+                return !Array.from(usedUrls).some(url => url.includes(file.name));
+            });
+
+            setOrphanedImages(orphans);
+        } catch (e) {
+            console.error("Erro ao escanear imagens:", e);
+            alert("Erro ao conectar com o Storage.");
+        } finally {
+            setScanStatus('done');
+        }
+    };
+
+    const toggleSelect = (name: string) => {
+        if (selectedOrphans.includes(name)) {
+            setSelectedOrphans(selectedOrphans.filter(n => n !== name));
+        } else {
+            setSelectedOrphans([...selectedOrphans, name]);
+        }
+    };
+
+    const deleteSelected = async () => {
+        if (!window.confirm(`Tem certeza que deseja apagar ${selectedOrphans.length} imagens? Esta ação não pode ser desfeita.`)) return;
+
+        setDeleting(true);
+        try {
+            const { error } = await supabase.storage.from('portfolio-images').remove(selectedOrphans);
+            if (error) throw error;
+            
+            // Atualizar lista
+            setOrphanedImages(orphanedImages.filter(img => !selectedOrphans.includes(img.name)));
+            setSelectedOrphans([]);
+            alert("Imagens apagadas com sucesso.");
+        } catch (e) {
+            console.error("Erro ao apagar:", e);
+            alert("Erro ao apagar imagens.");
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    return (
+        <div className="max-w-4xl h-full flex flex-col">
+            <h2 className="text-3xl font-serif font-bold text-stone-900 mb-8">Manutenção do Sistema</h2>
+            
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-stone-100 flex-1 overflow-y-auto">
+                {/* Description and Scan button */}
+                <div className="flex flex-col items-start gap-6 mb-8 border-b border-stone-100 pb-8">
+                     <p className="text-stone-500 text-sm leading-relaxed max-w-2xl">
+                        Identifique arquivos de imagem que estão salvos no servidor mas não estão sendo utilizados em nenhum lugar do site (álbuns, textos, perfil, etc.). Isso ajuda a economizar espaço e manter a organização.
+                    </p>
+                    <button 
+                        onClick={scanImages} 
+                        disabled={scanStatus === 'scanning'}
+                        className="bg-stone-900 text-white px-6 py-4 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-stone-800 transition-colors flex items-center gap-3 disabled:opacity-50 shadow-lg"
+                    >
+                        {scanStatus === 'scanning' ? <Loader2 className="animate-spin" size={18}/> : <RefreshCw size={18}/>}
+                        {scanStatus === 'scanning' ? 'Verificando...' : 'Escanear Imagens Órfãs'}
+                    </button>
+                </div>
+
+                {/* Results Section */}
+                {scanStatus === 'done' && (
+                    <div className="animate-fade-in">
+                        <div className="flex items-center justify-between mb-6">
+                            <h4 className="font-bold text-stone-600 text-sm flex items-center gap-3 uppercase tracking-wider">
+                                {orphanedImages.length === 0 ? <Check className="text-green-500" size={20}/> : <AlertTriangle className="text-amber-500" size={20}/>}
+                                {orphanedImages.length} Arquivos não utilizados encontrados
+                            </h4>
+                            {orphanedImages.length > 0 && (
+                                <button 
+                                    onClick={deleteSelected}
+                                    disabled={selectedOrphans.length === 0 || deleting}
+                                    className="text-red-500 hover:text-red-700 font-bold text-xs uppercase tracking-wider flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {deleting ? <Loader2 className="animate-spin" size={16}/> : <Trash2 size={16}/>}
+                                    Apagar Selecionados ({selectedOrphans.length})
+                                </button>
+                            )}
+                        </div>
+
+                        {orphanedImages.length > 0 ? (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {orphanedImages.map(img => (
+                                    <div 
+                                        key={img.name} 
+                                        onClick={() => toggleSelect(img.name)}
+                                        className={`relative group cursor-pointer rounded-xl overflow-hidden transition-all aspect-square border-2 ${selectedOrphans.includes(img.name) ? 'border-red-500 shadow-md' : 'border-stone-100 hover:border-stone-300'}`}
+                                    >
+                                        <img 
+                                            src={`https://raweqyxkahiwrewxarka.supabase.co/storage/v1/object/public/portfolio-images/${img.name}`} 
+                                            className={`w-full h-full object-cover transition-all duration-300 ${selectedOrphans.includes(img.name) ? 'opacity-50 grayscale' : 'group-hover:opacity-90'}`}
+                                            alt="orphan"
+                                            loading="lazy"
+                                        />
+                                        
+                                        {/* Overlay Icon */}
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            {selectedOrphans.includes(img.name) && (
+                                                <div className="bg-red-500 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg animate-fade-in transform scale-100">
+                                                    <Trash2 size={24}/>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Metadata Footer */}
+                                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm text-white text-[10px] py-1.5 px-2 truncate text-center font-mono tracking-wide">
+                                            {(img.metadata?.size / 1024).toFixed(1)} KB
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 bg-stone-50 rounded-lg border border-dashed border-stone-200 text-stone-400">
+                                <Check size={48} className="mx-auto mb-4 text-green-200" />
+                                <p>Tudo limpo! Nenhuma imagem órfã detectada.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 };
 
 const XIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>);
