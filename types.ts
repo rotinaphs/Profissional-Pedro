@@ -1,3 +1,4 @@
+
 export interface Photo {
   id: string;
   src: string;
@@ -65,6 +66,8 @@ export interface ThemeConfig {
     text: string;
     accent: string;
     secondary: string;
+    testimonialBackground?: string;
+    testimonialRole?: string;
   };
   fonts: {
     serif: string;

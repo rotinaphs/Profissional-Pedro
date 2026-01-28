@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useData, processImage } from '../context/DataContext';
 import { Mail, Instagram, Linkedin } from 'lucide-react';
@@ -93,7 +94,11 @@ const About: React.FC = () => {
                   <h3 className="font-sans text-sm font-bold uppercase tracking-widest text-stone-900 mb-8">Depoimentos</h3>
                   <div className="grid gap-8">
                     {testimonials.map((t) => (
-                      <div key={t.id} className="bg-white p-6 rounded-lg shadow-sm border border-stone-100">
+                      <div 
+                        key={t.id} 
+                        className="p-6 rounded-lg shadow-sm border border-stone-100"
+                        style={{ backgroundColor: 'var(--color-testimonial-bg)' }}
+                      >
                          <p 
                            className="text-lg italic mb-6 leading-relaxed"
                            style={{
@@ -108,7 +113,14 @@ const About: React.FC = () => {
                                  className="text-xs font-bold uppercase tracking-wide"
                                  style={{ color: 'var(--elem-title-color)' }}
                                >{t.name}</p>
-                               {t.role && <p className="font-sans text-[10px] text-stone-400 uppercase tracking-widest">{t.role}</p>}
+                               {t.role && (
+                                 <p 
+                                   className="font-sans text-[10px] uppercase tracking-widest"
+                                   style={{ color: 'var(--color-testimonial-role)' }}
+                                 >
+                                   {t.role}
+                                 </p>
+                               )}
                             </div>
                          </div>
                       </div>

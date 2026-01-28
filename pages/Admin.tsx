@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useData, processImage } from '../context/DataContext';
 import { initialData } from '../data';
@@ -665,7 +666,10 @@ const ThemeEditor: React.FC<{ theme: any, updateTheme: any }> = ({ theme, update
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {Object.entries(localTheme.colors).map(([key, val]: any) => (
                 <div key={key} className="space-y-2">
-                    <label className="block text-xs uppercase tracking-wider text-stone-400 mb-1">{key}</label>
+                    <label className="block text-xs uppercase tracking-wider text-stone-400 mb-1">
+                      {key === 'testimonialBackground' ? 'Fundo Depoimentos' : 
+                       key === 'testimonialRole' ? 'Cor Cargo (Depoim.)' : key}
+                    </label>
                     <div className="flex gap-4 items-center"><input type="color" value={val} onChange={e => updateColor(key, e.target.value)} className="h-12 w-12 cursor-pointer border-2 border-stone-100 rounded-lg p-1" /><input type="text" value={val} onChange={e => updateColor(key, e.target.value)} className="flex-1 p-3 border border-stone-200 rounded-lg uppercase font-mono text-sm" /></div>
                 </div>
             ))}

@@ -1,3 +1,4 @@
+
 import { AppData } from './types';
 
 export const initialData: AppData = {
@@ -7,6 +8,8 @@ export const initialData: AppData = {
       text: '#1c1917',       // stone-900
       accent: '#292524',     // stone-800
       secondary: '#78716c',  // stone-500
+      testimonialBackground: '#ffffff', // Default white
+      testimonialRole: '#a8a29e', // Default stone-400
     },
     fonts: {
       serif: '"Cormorant Garamond", serif',

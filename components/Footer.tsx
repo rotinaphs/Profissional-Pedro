@@ -20,15 +20,18 @@ const Footer: React.FC = () => {
     return `https://${handle}`;
   };
   
+  // Classe para garantir que os ícones tenham o mesmo tamanho de toque e alinhamento
+  const iconLinkClass = "w-12 h-12 flex items-center justify-center hover:text-white transition-colors text-stone-400";
+
   return (
     <footer className="bg-stone-900 text-stone-400 py-16 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center gap-10">
         
         {/* Ícones Sociais */}
-        <div className="flex items-center justify-center gap-8">
+        <div className="flex items-center justify-center gap-4">
           <a 
             href={`mailto:${profile.contact.email}`} 
-            className="hover:text-white transition-colors"
+            className={iconLinkClass}
             aria-label="Email"
           >
             <Mail size={24} strokeWidth={1.5} />
@@ -38,7 +41,7 @@ const Footer: React.FC = () => {
             href={getInstagramUrl(profile.contact.instagram)}
             target="_blank"
             rel="noopener noreferrer" 
-            className="hover:text-white transition-colors"
+            className={iconLinkClass}
             aria-label="Instagram"
           >
             <Instagram size={24} strokeWidth={1.5} />
@@ -49,7 +52,7 @@ const Footer: React.FC = () => {
               href={getLinkedinUrl(profile.contact.linkedin)}
               target="_blank"
               rel="noopener noreferrer" 
-              className="hover:text-white transition-colors"
+              className={iconLinkClass}
               aria-label="LinkedIn"
             >
               <Linkedin size={24} strokeWidth={1.5} />

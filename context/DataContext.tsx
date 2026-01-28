@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppData, Profile, Album, TextWork, Testimonial, ThemeConfig, HomeContent } from '../types';
 import { initialData } from '../data';
@@ -188,6 +189,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProp('--color-text', theme.colors?.text);
     setProp('--color-accent', theme.colors?.accent);
     setProp('--color-secondary', theme.colors?.secondary);
+    setProp('--color-testimonial-bg', theme.colors?.testimonialBackground || '#ffffff');
+    setProp('--color-testimonial-role', theme.colors?.testimonialRole || '#a8a29e');
     setProp('--font-serif', theme.fonts?.serif);
     setProp('--font-sans', theme.fonts?.sans);
     
