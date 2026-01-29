@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -37,10 +38,20 @@ const Album: React.FC = () => {
   return (
     <div className="min-h-screen bg-stone-50">
       {/* Header */}
-      <div className="bg-white border-b border-stone-100 py-16 md:py-24 px-4">
+      <div 
+        className="border-b border-stone-100 py-16 md:py-24 px-4"
+        style={{ backgroundColor: 'var(--color-surface)' }}
+      >
         <div className="max-w-6xl mx-auto text-center">
           <FadeIn>
-            <Link to="/portfolio" className="inline-flex items-center text-stone-400 hover:text-stone-900 mb-8 transition-colors uppercase text-[10px] font-bold tracking-[0.2em]">
+            <Link 
+              to="/portfolio" 
+              className="inline-flex items-center mb-8 transition-opacity hover:opacity-70 uppercase text-[10px] font-bold tracking-[0.2em]"
+              style={{ 
+                color: 'var(--elem-subtitle-color)',
+                fontFamily: 'var(--elem-subtitle-font)'
+              }}
+            >
               <ArrowLeft size={14} className="mr-2" /> Portfólio
             </Link>
           </FadeIn>

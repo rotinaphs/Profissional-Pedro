@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
@@ -35,12 +36,18 @@ const Home: React.FC = () => {
             </p>
           </FadeIn>
           <FadeIn delay={600}>
-            <div className="flex gap-6 justify-center">
+            <div className="flex gap-6 justify-center flex-wrap">
               <Link 
                 to="/portfolio" 
                 className="px-8 py-3 border border-white text-white hover:bg-white hover:text-black transition-all duration-300 uppercase tracking-widest text-sm font-medium"
               >
                 Ver Fotografias
+              </Link>
+              <Link 
+                to="/writings" 
+                className="px-8 py-3 border border-white text-white hover:bg-white hover:text-black transition-all duration-300 uppercase tracking-widest text-sm font-medium"
+              >
+                Ver Escritos
               </Link>
             </div>
           </FadeIn>

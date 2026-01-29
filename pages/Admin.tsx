@@ -52,7 +52,10 @@ const useUpload = () => {
 
 // --- Main Admin Component ---
 const Admin: React.FC = () => {
-  const { profile, albums, writings, testimonials, theme, home, updateProfile, updateAlbums, updateWritings, updateTestimonials, updateTheme, updateHome, resetData } = useData();
+  const { 
+    profile, albums, writings, testimonials, theme, home, portfolioPage, writingsPage,
+    updateProfile, updateAlbums, updateWritings, updateTestimonials, updateTheme, updateHome, updatePortfolioPage, updateWritingsPage, resetData 
+  } = useData();
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
@@ -189,8 +192,8 @@ const Admin: React.FC = () => {
          <div className="flex-1 overflow-y-auto p-4 md:p-12 w-full max-w-[1600px] mx-auto">
             {activeTab === 'home' && <HomeEditor home={home} updateHome={updateHome} />}
             {activeTab === 'profile' && <ProfileEditor profile={profile} updateProfile={updateProfile} />}
-            {activeTab === 'portfolio' && <PortfolioEditor albums={albums} updateAlbums={updateAlbums} />}
-            {activeTab === 'writings' && <WritingsEditor writings={writings} updateWritings={updateWritings} />}
+            {activeTab === 'portfolio' && <PortfolioEditor albums={albums} updateAlbums={updateAlbums} pageContent={portfolioPage} updatePageContent={updatePortfolioPage} />}
+            {activeTab === 'writings' && <WritingsEditor writings={writings} updateWritings={updateWritings} pageContent={writingsPage} updatePageContent={updateWritingsPage} />}
             {activeTab === 'testimonials' && <TestimonialsEditor testimonials={testimonials} updateTestimonials={updateTestimonials} />}
             {activeTab === 'theme' && <ThemeEditor theme={theme} updateTheme={updateTheme} />}
             {activeTab === 'maintenance' && <MaintenancePanel />}
@@ -438,12 +441,19 @@ const ProfileEditor: React.FC<{ profile: any, updateProfile: any }> = ({ profile
   );
 };
 
-const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any }> = ({ albums, updateAlbums }) => {
+const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent: any, updatePageContent: any }> = ({ albums, updateAlbums, pageContent, updatePageContent }) => {
   const [localAlbums, setLocalAlbums] = useState([...albums]);
+  const [localPageContent, setLocalPageContent] = useState(pageContent);
   const [expandedAlbum, setExpandedAlbum] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
 
-  const save = async () => { setSaveStatus('saving'); updateAlbums(localAlbums); await new Promise(r => setTimeout(r, 800)); setSaveStatus('success'); setTimeout(() => setSaveStatus('idle'), 3000); };
+  const save = async () => { 
+    setSaveStatus('saving'); 
+    await Promise.all([updateAlbums(localAlbums), updatePageContent(localPageContent)]);
+    await new Promise(r => setTimeout(r, 800)); 
+    setSaveStatus('success'); 
+    setTimeout(() => setSaveStatus('idle'), 3000); 
+  };
   
   // Use functional updates to prevent stale state issues with closures (especially important for removePhoto inside memoized components)
   const addAlbum = () => { 
@@ -496,6 +506,22 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any }> = ({ album
             <FeedbackSaveButton status={saveStatus} onClick={save} label="Salvar Tudo" className="px-5 py-2.5 min-w-[150px]" />
          </div>
        </div>
+
+       {/* Page Header Editing Section */}
+       <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm mb-8 space-y-4">
+         <h3 className="font-bold text-stone-800 border-b border-stone-100 pb-2">Cabeçalho da Página</h3>
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Título da Página</label>
+                <input type="text" value={localPageContent.title} onChange={e => setLocalPageContent({...localPageContent, title: e.target.value})} className="w-full p-3 border border-stone-200 rounded-lg" />
+            </div>
+            <div className="space-y-2">
+                <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Descrição</label>
+                <input type="text" value={localPageContent.description} onChange={e => setLocalPageContent({...localPageContent, description: e.target.value})} className="w-full p-3 border border-stone-200 rounded-lg" />
+            </div>
+         </div>
+       </div>
+
        <div className="flex-1 overflow-y-auto space-y-4 pb-12">
          {localAlbums.map(album => (
            <div key={album.id} className="bg-white border border-stone-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
@@ -535,12 +561,19 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any }> = ({ album
   );
 };
 
-const WritingsEditor: React.FC<{ writings: any[], updateWritings: any }> = ({ writings, updateWritings }) => {
+const WritingsEditor: React.FC<{ writings: any[], updateWritings: any, pageContent: any, updatePageContent: any }> = ({ writings, updateWritings, pageContent, updatePageContent }) => {
   const [localWritings, setLocalWritings] = useState([...writings]);
+  const [localPageContent, setLocalPageContent] = useState(pageContent);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
 
-  const save = async () => { setSaveStatus('saving'); updateWritings(localWritings); await new Promise(r => setTimeout(r, 800)); setSaveStatus('success'); setTimeout(() => setSaveStatus('idle'), 3000); };
+  const save = async () => { 
+    setSaveStatus('saving'); 
+    await Promise.all([updateWritings(localWritings), updatePageContent(localPageContent)]);
+    await new Promise(r => setTimeout(r, 800)); 
+    setSaveStatus('success'); 
+    setTimeout(() => setSaveStatus('idle'), 3000); 
+  };
   const addWriting = () => { const newWork = { id: `text-${Date.now()}`, title: "Novo Texto", category: "Crônica", date: new Date().toLocaleDateString('pt-BR'), excerpt: "Resumo...", content: "<p>Conteúdo...</p>", coverImage: "" }; setLocalWritings([newWork, ...localWritings]); setEditingId(newWork.id); };
   const removeWriting = (id: string) => { if(window.confirm("Apagar?")) { setLocalWritings(localWritings.filter(w => w.id !== id)); if(editingId === id) setEditingId(null); } }
   const updateWritingField = (id: string, field: string, value: string) => { setLocalWritings(localWritings.map(w => w.id === id ? { ...w, [field]: value } : w)); };
@@ -553,6 +586,21 @@ const WritingsEditor: React.FC<{ writings: any[], updateWritings: any }> = ({ wr
          <div className="flex gap-3">
             <button onClick={addWriting} className="bg-stone-200 text-stone-800 px-5 py-2.5 rounded-lg hover:bg-stone-300 flex items-center justify-center gap-2 transition-colors font-medium"><Plus size={18} /> Novo Texto</button>
             <FeedbackSaveButton status={saveStatus} onClick={save} label="Salvar Tudo" className="px-5 py-2.5 min-w-[150px]" />
+         </div>
+       </div>
+
+       {/* Page Header Editing Section */}
+       <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm mb-8 flex-shrink-0 space-y-4">
+         <h3 className="font-bold text-stone-800 border-b border-stone-100 pb-2">Cabeçalho da Página</h3>
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Título da Página</label>
+                <input type="text" value={localPageContent.title} onChange={e => setLocalPageContent({...localPageContent, title: e.target.value})} className="w-full p-3 border border-stone-200 rounded-lg" />
+            </div>
+            <div className="space-y-2">
+                <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Descrição</label>
+                <input type="text" value={localPageContent.description} onChange={e => setLocalPageContent({...localPageContent, description: e.target.value})} className="w-full p-3 border border-stone-200 rounded-lg" />
+            </div>
          </div>
        </div>
 
@@ -668,7 +716,9 @@ const ThemeEditor: React.FC<{ theme: any, updateTheme: any }> = ({ theme, update
                 <div key={key} className="space-y-2">
                     <label className="block text-xs uppercase tracking-wider text-stone-400 mb-1">
                       {key === 'testimonialBackground' ? 'Fundo Depoimentos' : 
-                       key === 'testimonialRole' ? 'Cor Cargo (Depoim.)' : key}
+                       key === 'testimonialRole' ? 'Cor Cargo (Depoim.)' : 
+                       key === 'surface' ? 'Cor do Conteúdo (Surface)' : 
+                       key === 'background' ? 'Fundo da Página' : key}
                     </label>
                     <div className="flex gap-4 items-center"><input type="color" value={val} onChange={e => updateColor(key, e.target.value)} className="h-12 w-12 cursor-pointer border-2 border-stone-100 rounded-lg p-1" /><input type="text" value={val} onChange={e => updateColor(key, e.target.value)} className="flex-1 p-3 border border-stone-200 rounded-lg uppercase font-mono text-sm" /></div>
                 </div>
@@ -733,6 +783,7 @@ const ThemeEditor: React.FC<{ theme: any, updateTheme: any }> = ({ theme, update
 };
 
 const MaintenancePanel: React.FC = () => {
+    // ... (rest of MaintenancePanel)
     const { profile, albums, writings, testimonials, theme } = useData();
     const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'done'>('idle');
     const [orphanedImages, setOrphanedImages] = useState<any[]>([]);

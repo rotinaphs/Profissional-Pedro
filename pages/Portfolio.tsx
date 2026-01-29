@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useData, processImage } from '../context/DataContext';
 import FadeIn from '../components/FadeIn';
 
 const Portfolio: React.FC = () => {
-  const { albums } = useData();
+  const { albums, portfolioPage } = useData();
 
   return (
     <div className="min-h-screen bg-stone-50 py-12 md:py-20 px-4 sm:px-6 lg:px-8">
@@ -17,7 +18,7 @@ const Portfolio: React.FC = () => {
                 color: 'var(--elem-title-color)',
                 fontFamily: 'var(--elem-title-font)'
               }}
-            >Portfólio</h1>
+            >{portfolioPage.title}</h1>
             <div className="h-1 w-20 mx-auto mb-6" style={{ backgroundColor: 'var(--elem-title-color)' }}></div>
           </FadeIn>
           <FadeIn delay={200}>
@@ -29,7 +30,7 @@ const Portfolio: React.FC = () => {
                 fontSize: 'var(--font-size-base)'
               }}
             >
-              Coleções de momentos, luz e sombra. Selecione um álbum para explorar.
+              {portfolioPage.description}
             </p>
           </FadeIn>
         </header>

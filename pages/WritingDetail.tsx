@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -15,7 +16,7 @@ const WritingDetail: React.FC = () => {
   const { src, style } = processImage(work.coverImage);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-surface)' }}>
       {/* Hero Header */}
       <div className="relative w-full h-[60vh] bg-stone-900 flex flex-col items-center justify-center text-center px-4">
         {work.coverImage && (
@@ -59,8 +60,8 @@ const WritingDetail: React.FC = () => {
       {/* Content */}
       <article className="max-w-3xl mx-auto px-6 py-24">
         <div 
-          className="prose prose-stone font-serif leading-relaxed text-stone-800"
-          style={{ fontSize: 'var(--font-size-base)' }}
+          className="prose prose-stone font-serif leading-relaxed"
+          style={{ fontSize: 'var(--font-size-base)', color: 'var(--elem-text-color)' }}
         >
           {/* Dangerously setting HTML since the source is trusted (local file) */}
           <div dangerouslySetInnerHTML={{ __html: work.content }} />

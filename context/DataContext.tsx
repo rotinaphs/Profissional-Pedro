@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AppData, Profile, Album, TextWork, Testimonial, ThemeConfig, HomeContent } from '../types';
+import { AppData, Profile, Album, TextWork, Testimonial, ThemeConfig, HomeContent, PageContent } from '../types';
 import { initialData } from '../data';
 import { supabase } from '../supabase';
 
@@ -11,6 +11,8 @@ interface DataContextType extends AppData {
   updateTestimonials: (testimonials: Testimonial[]) => Promise<void>;
   updateTheme: (theme: ThemeConfig) => Promise<void>;
   updateHome: (home: HomeContent) => Promise<void>;
+  updatePortfolioPage: (content: PageContent) => Promise<void>;
+  updateWritingsPage: (content: PageContent) => Promise<void>;
   resetData: () => Promise<void>;
 }
 
@@ -76,6 +78,16 @@ const mergeWithInitial = (incoming: any): AppData => {
      ...(incoming.home || {})
   };
 
+  const safePortfolioPage: PageContent = {
+    ...initialData.portfolioPage,
+    ...(incoming.portfolioPage || {})
+  };
+
+  const safeWritingsPage: PageContent = {
+    ...initialData.writingsPage,
+    ...(incoming.writingsPage || {})
+  };
+
   return {
     ...initialData,
     ...incoming,
@@ -86,7 +98,9 @@ const mergeWithInitial = (incoming: any): AppData => {
     writings: Array.isArray(incoming.writings) ? incoming.writings : initialData.writings,
     testimonials: Array.isArray(incoming.testimonials) ? incoming.testimonials : initialData.testimonials,
     theme: safeTheme,
-    home: safeHome
+    home: safeHome,
+    portfolioPage: safePortfolioPage,
+    writingsPage: safeWritingsPage
   };
 };
 
@@ -189,6 +203,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProp('--color-text', theme.colors?.text);
     setProp('--color-accent', theme.colors?.accent);
     setProp('--color-secondary', theme.colors?.secondary);
+    setProp('--color-surface', theme.colors?.surface || '#ffffff');
     setProp('--color-testimonial-bg', theme.colors?.testimonialBackground || '#ffffff');
     setProp('--color-testimonial-role', theme.colors?.testimonialRole || '#a8a29e');
     setProp('--font-serif', theme.fonts?.serif);
@@ -262,6 +277,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateHome = async (home: HomeContent) => {
     await syncToSupabase({ ...data, home });
   };
+
+  const updatePortfolioPage = async (portfolioPage: PageContent) => {
+    await syncToSupabase({ ...data, portfolioPage });
+  };
+
+  const updateWritingsPage = async (writingsPage: PageContent) => {
+    await syncToSupabase({ ...data, writingsPage });
+  };
   
   const resetData = async () => {
     if(window.confirm("Tem certeza? Todas as alterações serão perdidas e os dados do banco serão resetados.")) {
@@ -287,6 +310,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateTestimonials,
       updateTheme,
       updateHome,
+      updatePortfolioPage,
+      updateWritingsPage,
       resetData
     }}>
       {children}

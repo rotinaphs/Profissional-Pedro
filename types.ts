@@ -55,6 +55,11 @@ export interface HomeContent {
   introDescription: string;
 }
 
+export interface PageContent {
+  title: string;
+  description: string;
+}
+
 export interface ElementStyle {
   font: string;
   color: string;
@@ -66,6 +71,7 @@ export interface ThemeConfig {
     text: string;
     accent: string;
     secondary: string;
+    surface?: string;
     testimonialBackground?: string;
     testimonialRole?: string;
   };
@@ -95,4 +101,6 @@ export interface AppData {
   testimonials: Testimonial[];
   theme: ThemeConfig;
   home: HomeContent;
+  portfolioPage: PageContent;
+  writingsPage: PageContent;
 }

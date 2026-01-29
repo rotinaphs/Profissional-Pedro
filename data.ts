@@ -8,6 +8,7 @@ export const initialData: AppData = {
       text: '#1c1917',       // stone-900
       accent: '#292524',     // stone-800
       secondary: '#78716c',  // stone-500
+      surface: '#ffffff',    // Default white for cards/headers
       testimonialBackground: '#ffffff', // Default white
       testimonialRole: '#a8a29e', // Default stone-400
     },
@@ -35,6 +36,14 @@ export const initialData: AppData = {
     welcomeLabel: "Bem-vindo",
     introTitle: "\"Não fotografamos o que vemos, fotografamos o que sentimos.\"",
     introDescription: "Este espaço é dedicado aos fragmentos de tempo que coleciono. Seja através da lente da câmera ou da tinta da caneta, cada obra aqui exposta é um convite para desacelerar e enxergar a beleza nos detalhes."
+  },
+  portfolioPage: {
+    title: "Portfólio",
+    description: "Coleções de momentos, luz e sombra. Selecione um álbum para explorar."
+  },
+  writingsPage: {
+    title: "Escritos",
+    description: "Ensaios, crônicas e devaneios poéticos."
   },
   profile: {
     name: "Pedro Henrique",

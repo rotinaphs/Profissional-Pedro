@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useData, processImage } from '../context/DataContext';
 
 const Writings: React.FC = () => {
-  const { writings } = useData();
+  const { writings, writingsPage } = useData();
 
   return (
     <div className="min-h-screen bg-stone-50 py-16 md:py-24 px-4 sm:px-6 lg:px-8">
@@ -15,7 +16,7 @@ const Writings: React.FC = () => {
                color: 'var(--elem-title-color)',
                fontFamily: 'var(--elem-title-font)'
             }}
-          >Escritos</h1>
+          >{writingsPage.title}</h1>
           <p 
             className="italic text-lg"
             style={{
@@ -23,7 +24,7 @@ const Writings: React.FC = () => {
                fontFamily: 'var(--elem-subtitle-font)'
             }}
           >
-            Ensaios, crônicas e devaneios poéticos.
+            {writingsPage.description}
           </p>
         </header>
 
