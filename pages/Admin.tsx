@@ -1,8 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useData, processImage } from '../context/DataContext';
-import { initialData } from '../data';
-import { Plus, Trash2, Save, LogOut, ChevronDown, ChevronRight, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, RefreshCw, Menu, RotateCcw, Target, MousePointer2 } from 'lucide-react';
+import { Plus, Trash2, Save, LogOut, ChevronDown, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, Menu, RotateCcw, MousePointer2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
@@ -134,10 +133,10 @@ const Admin: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row font-sans text-stone-900 overflow-hidden">
+    <div className="h-screen w-full bg-stone-50 flex flex-col md:flex-row font-sans text-stone-900 overflow-hidden">
       
-      {/* Mobile Header */}
-      <div className="md:hidden bg-[#1c1917] text-stone-100 p-4 flex items-center justify-between shadow-md z-30 sticky top-0">
+      {/* Mobile Header - Visible only on small screens */}
+      <div className="md:hidden flex-none h-16 bg-[#1c1917] text-stone-100 px-4 flex items-center justify-between shadow-md z-30 relative">
          <span className="font-serif font-bold text-lg tracking-wide">Admin Painel</span>
          <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-stone-300 hover:text-white">
             <Menu size={24} />
@@ -152,13 +151,15 @@ const Admin: React.FC = () => {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Responsive Width and Padding */}
       <aside className={`
-          fixed inset-y-0 left-0 z-50 w-72 bg-[#1c1917] text-stone-400 p-8 flex flex-col h-full shadow-2xl transition-transform duration-300 ease-in-out
-          md:relative md:translate-x-0 md:shadow-none
+          fixed inset-y-0 left-0 z-50 bg-[#1c1917] text-stone-400 flex flex-col h-full shadow-2xl transition-transform duration-300 ease-in-out
+          w-72 p-8
+          md:relative md:translate-x-0 md:shadow-none md:w-60 md:p-6 
+          lg:w-72 lg:p-8
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="mb-12 flex justify-between items-start">
+        <div className="mb-8 md:mb-12 flex justify-between items-start">
           <div>
             <h2 className="text-2xl font-serif font-bold text-stone-100 mb-2">Admin Painel</h2>
             <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500 truncate max-w-[180px]">{session.user.email}</p>
@@ -187,9 +188,9 @@ const Admin: React.FC = () => {
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 bg-white md:bg-stone-50 h-[calc(100vh-60px)] md:h-screen w-full overflow-hidden flex flex-col relative">
-         <div className="flex-1 overflow-y-auto p-4 md:p-12 w-full max-w-[1600px] mx-auto">
+      {/* Main Content Area - Fill remaining space */}
+      <main className="flex-1 h-full overflow-hidden flex flex-col relative bg-white md:bg-stone-50 w-full">
+         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 lg:p-10 w-full max-w-[1600px] mx-auto flex flex-col">
             {activeTab === 'home' && <HomeEditor home={home} updateHome={updateHome} />}
             {activeTab === 'profile' && <ProfileEditor profile={profile} updateProfile={updateProfile} />}
             {activeTab === 'portfolio' && <PortfolioEditor albums={albums} updateAlbums={updateAlbums} pageContent={portfolioPage} updatePageContent={updatePortfolioPage} />}
@@ -215,8 +216,8 @@ const FeedbackSaveButton: React.FC<{ onClick: () => Promise<void> | void; status
   const isSaving = status === 'saving';
   const isSuccess = status === 'success';
   return (
-    <button onClick={onClick} disabled={isSaving} className={`relative flex items-center justify-center gap-2 px-8 py-3 rounded-lg transition-all duration-300 font-medium tracking-wide shadow-lg min-w-[180px] ${isSuccess ? 'bg-green-600 text-white' : 'bg-[#1c1917] text-white hover:bg-black'} ${className} ${isSaving ? 'opacity-80 cursor-not-allowed' : ''}`}>
-      {isSaving ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : isSuccess ? <><Check size={18} /> Salvo!</> : <><Save size={18} className="hidden sm:inline" /> {label}</>}
+    <button onClick={onClick} disabled={isSaving} className={`relative flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-all duration-300 font-medium tracking-wide shadow-lg min-w-0 ${isSuccess ? 'bg-green-600 text-white' : 'bg-[#1c1917] text-white hover:bg-black'} ${className} ${isSaving ? 'opacity-80 cursor-not-allowed' : ''}`}>
+      {isSaving ? <><Loader2 size={18} className="animate-spin" /> <span className="hidden sm:inline">Salvando...</span></> : isSuccess ? <><Check size={18} /> <span className="hidden sm:inline">Salvo!</span></> : <><Save size={18} className="hidden sm:inline" /> {label}</>}
     </button>
   );
 };
@@ -361,7 +362,7 @@ const PhotoItemEditor = React.memo(({ photo, albumId, updatePhoto, removePhoto }
             <input type="text" placeholder="URL da Imagem" value={photo.src} onChange={e => updatePhoto(albumId, photo.id, 'src', e.target.value)} className="w-full p-2 border border-stone-200 rounded text-xs" />
             <input type="text" placeholder="Legenda/Título" value={photo.caption || ''} onChange={e => updatePhoto(albumId, photo.id, 'caption', e.target.value)} className="w-full p-2 border border-stone-200 rounded text-xs" />
          </div>
-         <button onClick={() => removePhoto(albumId, photo.id)} className="text-stone-400 hover:text-red-500 p-1"><XIcon /></button>
+         <button onClick={() => removePhoto(albumId, photo.id)} className="text-stone-400 hover:text-red-500 p-1"><X size={18} /></button>
       </div>
     );
 }, (prev, next) => {
@@ -447,6 +448,11 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent:
   const [expandedAlbum, setExpandedAlbum] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
 
+  // NEW: Bulk Upload State
+  const bulkInputRef = useRef<HTMLInputElement>(null);
+  const [bulkTargetId, setBulkTargetId] = useState<string | null>(null);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+
   const save = async () => { 
     setSaveStatus('saving'); 
     await Promise.all([updateAlbums(localAlbums), updatePageContent(localPageContent)]);
@@ -455,7 +461,6 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent:
     setTimeout(() => setSaveStatus('idle'), 3000); 
   };
   
-  // Use functional updates to prevent stale state issues with closures (especially important for removePhoto inside memoized components)
   const addAlbum = () => { 
     const newAlbum = { id: `new-album-${Date.now()}`, title: "Novo Álbum", description: "Descrição...", date: new Date().getFullYear().toString(), coverImage: "https://picsum.photos/800/600", photos: [] }; 
     setLocalAlbums(prev => [newAlbum, ...prev]); 
@@ -497,65 +502,164 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent:
      }));
   }, []);
 
+  // NEW: Bulk Upload Handler
+  const handleBulkUploadClick = (albumId: string) => {
+    setBulkTargetId(albumId);
+    if (bulkInputRef.current) bulkInputRef.current.click();
+  };
+
+  const handleBulkFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !bulkTargetId) return;
+
+    setIsBulkUploading(true);
+    setSaveStatus('saving');
+
+    try {
+        const uploadPromises = Array.from(files).map(async (file: File) => {
+            const url = await uploadToStorage(file);
+            return {
+                id: `p-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                src: url,
+                alt: file.name.split('.')[0] || 'Foto',
+                caption: ''
+            };
+        });
+
+        const newPhotos = await Promise.all(uploadPromises);
+
+        const updatedAlbums = localAlbums.map(a => {
+            if (a.id === bulkTargetId) {
+                return { ...a, photos: [...a.photos, ...newPhotos] };
+            }
+            return a;
+        });
+
+        setLocalAlbums(updatedAlbums);
+        await updateAlbums(updatedAlbums); // Immediate Save
+        setSaveStatus('success');
+    } catch (err) {
+        console.error("Upload error:", err);
+        alert("Erro ao fazer upload de imagens.");
+    } finally {
+        setIsBulkUploading(false);
+        setBulkTargetId(null);
+        if (bulkInputRef.current) bulkInputRef.current.value = '';
+        setTimeout(() => setSaveStatus('idle'), 3000);
+    }
+  };
+
   return (
     <div className="max-w-5xl h-full flex flex-col">
-       <div className="flex justify-between items-center mb-8">
-         <h2 className="text-3xl font-serif font-bold text-stone-900">Gerenciar Portfólio</h2>
-         <div className="flex gap-3">
-            <button onClick={addAlbum} className="bg-stone-200 text-stone-800 px-5 py-2.5 rounded-lg hover:bg-stone-300 flex items-center justify-center gap-2 transition-colors font-medium"><Plus size={18} /> Novo Álbum</button>
-            <FeedbackSaveButton status={saveStatus} onClick={save} label="Salvar Tudo" className="px-5 py-2.5 min-w-[150px]" />
+       {/* NEW: Hidden Input */}
+       <input 
+          type="file" 
+          ref={bulkInputRef} 
+          multiple 
+          accept="image/*" 
+          className="hidden" 
+          onChange={handleBulkFileChange} 
+       />
+
+       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 flex-shrink-0 gap-4">
+         <h2 className="text-2xl md:text-3xl font-serif font-bold text-stone-900">Gerenciar Portfólio</h2>
+         <div className="flex gap-2 w-full md:w-auto">
+            <button onClick={addAlbum} className="flex-1 md:flex-none bg-white border border-stone-200 text-stone-800 px-4 py-2.5 rounded-lg hover:bg-stone-50 flex items-center justify-center gap-2 transition-colors font-medium shadow-sm text-sm"><Plus size={18} /> <span className="whitespace-nowrap">Novo Álbum</span></button>
+            <FeedbackSaveButton status={saveStatus} onClick={save} label="Salvar Tudo" className="flex-1 md:flex-none px-4 py-2.5 min-w-0 text-sm whitespace-nowrap" />
          </div>
        </div>
 
-       {/* Page Header Editing Section */}
-       <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm mb-8 space-y-4">
-         <h3 className="font-bold text-stone-800 border-b border-stone-100 pb-2">Cabeçalho da Página</h3>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Título da Página</label>
-                <input type="text" value={localPageContent.title} onChange={e => setLocalPageContent({...localPageContent, title: e.target.value})} className="w-full p-3 border border-stone-200 rounded-lg" />
-            </div>
-            <div className="space-y-2">
-                <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Descrição</label>
-                <input type="text" value={localPageContent.description} onChange={e => setLocalPageContent({...localPageContent, description: e.target.value})} className="w-full p-3 border border-stone-200 rounded-lg" />
-            </div>
-         </div>
-       </div>
-
-       <div className="flex-1 overflow-y-auto space-y-4 pb-12">
-         {localAlbums.map(album => (
-           <div key={album.id} className="bg-white border border-stone-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-             <div className="bg-stone-50 p-5 flex justify-between items-center cursor-pointer hover:bg-stone-100" onClick={() => setExpandedAlbum(expandedAlbum === album.id ? null : album.id)}>
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-12 rounded bg-stone-300 overflow-hidden"><img src={processImage(album.coverImage).src} className="w-full h-full object-cover" style={processImage(album.coverImage).style} alt="cover" /></div>
-                  <div><h3 className="font-bold text-stone-800 text-lg">{album.title}</h3><p className="text-xs text-stone-500 font-medium uppercase tracking-wider">{album.photos.length} FOTOS • {album.date}</p></div>
+       {/* Scrollable Content Container */}
+       <div className="flex-1 overflow-y-auto min-h-0 pb-12 pr-2 space-y-8">
+           
+           {/* Page Header Editing Section */}
+           <div className="bg-white p-8 rounded-xl border border-stone-200 shadow-sm space-y-6">
+             <h3 className="font-bold text-stone-800 text-lg border-b border-stone-100 pb-4">Cabeçalho da Página</h3>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                    <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Título da Página</label>
+                    <input type="text" value={localPageContent.title} onChange={e => setLocalPageContent({...localPageContent, title: e.target.value})} className="w-full p-4 border border-stone-200 rounded-lg bg-stone-50/50 focus:bg-white transition-colors text-lg font-serif" />
                 </div>
-                <div className="flex items-center gap-4"><button onClick={(e) => {e.stopPropagation(); removeAlbum(album.id)}} className="p-2 text-stone-400 hover:text-red-500"><Trash2 size={18}/></button>{expandedAlbum === album.id ? <ChevronDown size={20} className="text-stone-400"/> : <ChevronRight size={20} className="text-stone-400"/>}</div>
+                <div className="space-y-2">
+                    <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Descrição</label>
+                    <input type="text" value={localPageContent.description} onChange={e => setLocalPageContent({...localPageContent, description: e.target.value})} className="w-full p-4 border border-stone-200 rounded-lg bg-stone-50/50 focus:bg-white transition-colors" />
+                </div>
              </div>
-             {expandedAlbum === album.id && (
-               <div className="p-8 border-t border-stone-100 bg-white">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Título</label><input type="text" value={album.title} onChange={e => updateAlbumField(album.id, 'title', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
-                    <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Data</label><input type="text" value={album.date} onChange={e => updateAlbumField(album.id, 'date', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
-                    <div className="col-span-2 space-y-2"><ImageInput label="Capa do Álbum" value={album.coverImage} onChange={(val) => updateAlbumField(album.id, 'coverImage', val)} /></div>
-                    <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Descrição</label><textarea value={album.description} onChange={e => updateAlbumField(album.id, 'description', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg h-24 resize-none" /></div>
-                 </div>
-                 <div className="flex items-center justify-between mb-4 border-b border-stone-100 pb-2"><h4 className="font-bold text-sm text-stone-500 uppercase tracking-widest">Galeria</h4><button onClick={() => addPhoto(album.id)} className="text-xs font-bold text-stone-900 hover:text-stone-600 uppercase tracking-wider flex items-center gap-1">+ Adicionar Foto</button></div>
-                 <div className="space-y-3">
-                    {album.photos.map((photo: any) => (
-                        <PhotoItemEditor 
-                            key={photo.id} 
-                            photo={photo} 
-                            albumId={album.id} 
-                            updatePhoto={updatePhoto} 
-                            removePhoto={removePhoto} 
-                        />
-                    ))}
-                 </div>
-               </div>
-             )}
            </div>
-         ))}
+
+           <div className="space-y-4">
+             {localAlbums.map(album => (
+               <div key={album.id} className="bg-white border border-stone-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 group">
+                 <div className="p-4 md:p-6 flex justify-between items-center cursor-pointer hover:bg-stone-50/80 transition-colors" onClick={() => setExpandedAlbum(expandedAlbum === album.id ? null : album.id)}>
+                    <div className="flex items-center gap-4 md:gap-6 overflow-hidden">
+                      <div className="w-20 h-14 md:w-24 md:h-16 rounded-md bg-stone-200 overflow-hidden shadow-sm relative shrink-0">
+                          <img src={processImage(album.coverImage).src} className="w-full h-full object-cover" style={processImage(album.coverImage).style} alt="cover" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                          <h3 className="font-serif text-lg md:text-xl font-bold text-stone-800 group-hover:text-stone-600 transition-colors truncate pr-2">{album.title}</h3>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                             <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 bg-stone-100 px-2 py-0.5 rounded whitespace-nowrap">{album.photos.length} FOTOS</span>
+                             <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">•</span>
+                             <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500 whitespace-nowrap">{album.date}</span>
+                          </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 md:gap-4 flex-shrink-0 ml-2">
+                        <button 
+                            onClick={(e) => {e.stopPropagation(); removeAlbum(album.id)}} 
+                            className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                            title="Excluir Álbum"
+                        >
+                            <Trash2 size={18}/>
+                        </button>
+                        <div className={`p-2 text-stone-300 transition-transform duration-300 ${expandedAlbum === album.id ? 'rotate-180' : ''}`}>
+                            <ChevronDown size={24}/>
+                        </div>
+                    </div>
+                 </div>
+                 {expandedAlbum === album.id && (
+                   <div className="p-4 md:p-8 border-t border-stone-100 bg-white animate-fade-in">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Título</label><input type="text" value={album.title} onChange={e => updateAlbumField(album.id, 'title', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Data</label><input type="text" value={album.date} onChange={e => updateAlbumField(album.id, 'date', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
+                        <div className="col-span-2 space-y-2"><ImageInput label="Capa do Álbum" value={album.coverImage} onChange={(val) => updateAlbumField(album.id, 'coverImage', val)} /></div>
+                        <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Descrição</label><textarea value={album.description} onChange={e => updateAlbumField(album.id, 'description', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg h-24 resize-none" /></div>
+                     </div>
+                     
+                     {/* Updated Gallery Header with Bulk Upload Button */}
+                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 border-b border-stone-100 pb-2 gap-3">
+                        <h4 className="font-bold text-sm text-stone-500 uppercase tracking-widest">Galeria</h4>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <button onClick={() => addPhoto(album.id)} className="flex-1 sm:flex-none text-xs font-bold text-stone-500 hover:text-stone-800 uppercase tracking-wider flex items-center justify-center gap-1 border border-stone-200 px-3 py-1.5 rounded bg-white hover:bg-stone-50">
+                               <Plus size={14}/> Vazio
+                            </button>
+                            <button 
+                               onClick={() => handleBulkUploadClick(album.id)} 
+                               disabled={isBulkUploading}
+                               className="flex-1 sm:flex-none text-xs font-bold text-white bg-stone-900 hover:bg-stone-800 uppercase tracking-wider flex items-center justify-center gap-2 px-3 py-1.5 rounded shadow-sm disabled:opacity-70 transition-colors"
+                            >
+                               {isBulkUploading && bulkTargetId === album.id ? <Loader2 size={14} className="animate-spin"/> : <Upload size={14}/>}
+                               Upload Múltiplo
+                            </button>
+                        </div>
+                     </div>
+
+                     <div className="space-y-3">
+                        {album.photos.map((photo: any) => (
+                            <PhotoItemEditor 
+                                key={photo.id} 
+                                photo={photo} 
+                                albumId={album.id} 
+                                updatePhoto={updatePhoto} 
+                                removePhoto={removePhoto} 
+                            />
+                        ))}
+                     </div>
+                   </div>
+                 )}
+               </div>
+             ))}
+           </div>
        </div>
     </div>
   );
@@ -564,68 +668,94 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent:
 const WritingsEditor: React.FC<{ writings: any[], updateWritings: any, pageContent: any, updatePageContent: any }> = ({ writings, updateWritings, pageContent, updatePageContent }) => {
   const [localWritings, setLocalWritings] = useState([...writings]);
   const [localPageContent, setLocalPageContent] = useState(pageContent);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
 
-  const save = async () => { 
-    setSaveStatus('saving'); 
+  const save = async () => {
+    setSaveStatus('saving');
     await Promise.all([updateWritings(localWritings), updatePageContent(localPageContent)]);
-    await new Promise(r => setTimeout(r, 800)); 
-    setSaveStatus('success'); 
-    setTimeout(() => setSaveStatus('idle'), 3000); 
+    await new Promise(r => setTimeout(r, 800));
+    setSaveStatus('success');
+    setTimeout(() => setSaveStatus('idle'), 3000);
   };
-  const addWriting = () => { const newWork = { id: `text-${Date.now()}`, title: "Novo Texto", category: "Crônica", date: new Date().toLocaleDateString('pt-BR'), excerpt: "Resumo...", content: "<p>Conteúdo...</p>", coverImage: "" }; setLocalWritings([newWork, ...localWritings]); setEditingId(newWork.id); };
-  const removeWriting = (id: string) => { if(window.confirm("Apagar?")) { setLocalWritings(localWritings.filter(w => w.id !== id)); if(editingId === id) setEditingId(null); } }
-  const updateWritingField = (id: string, field: string, value: string) => { setLocalWritings(localWritings.map(w => w.id === id ? { ...w, [field]: value } : w)); };
-  const currentEdit = localWritings.find(w => w.id === editingId);
+
+  const addWriting = () => {
+    const newWork = { id: `work-${Date.now()}`, title: "Novo Texto", category: "Crônica", excerpt: "", content: "<p>Conteúdo aqui...</p>", date: new Date().toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'}), coverImage: "" };
+    setLocalWritings(prev => [newWork, ...prev]);
+    setExpandedId(newWork.id);
+  };
+
+  const removeWriting = (id: string) => {
+    if(window.confirm("Deletar texto?")) setLocalWritings(prev => prev.filter(w => w.id !== id));
+  };
+
+  const updateWriting = (id: string, field: string, value: string) => {
+    setLocalWritings(prev => prev.map(w => w.id === id ? { ...w, [field]: value } : w));
+  };
 
   return (
-    <div className="flex flex-col h-full">
-       <div className="flex justify-between items-center mb-8 flex-shrink-0">
-         <h2 className="text-3xl font-serif font-bold text-stone-900">Escritos</h2>
-         <div className="flex gap-3">
-            <button onClick={addWriting} className="bg-stone-200 text-stone-800 px-5 py-2.5 rounded-lg hover:bg-stone-300 flex items-center justify-center gap-2 transition-colors font-medium"><Plus size={18} /> Novo Texto</button>
-            <FeedbackSaveButton status={saveStatus} onClick={save} label="Salvar Tudo" className="px-5 py-2.5 min-w-[150px]" />
+    <div className="max-w-5xl h-full flex flex-col">
+       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 flex-shrink-0 gap-4">
+         <h2 className="text-2xl md:text-3xl font-serif font-bold text-stone-900">Gerenciar Escritos</h2>
+         <div className="flex gap-2 w-full md:w-auto">
+            <button onClick={addWriting} className="flex-1 md:flex-none bg-white border border-stone-200 text-stone-800 px-4 py-2.5 rounded-lg hover:bg-stone-50 flex items-center justify-center gap-2 transition-colors font-medium shadow-sm text-sm"><Plus size={18} /> Novo Texto</button>
+            <FeedbackSaveButton status={saveStatus} onClick={save} label="Salvar Tudo" className="flex-1 md:flex-none px-4 py-2.5 min-w-0 text-sm whitespace-nowrap" />
          </div>
        </div>
 
-       {/* Page Header Editing Section */}
-       <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm mb-8 flex-shrink-0 space-y-4">
-         <h3 className="font-bold text-stone-800 border-b border-stone-100 pb-2">Cabeçalho da Página</h3>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Título da Página</label>
-                <input type="text" value={localPageContent.title} onChange={e => setLocalPageContent({...localPageContent, title: e.target.value})} className="w-full p-3 border border-stone-200 rounded-lg" />
-            </div>
-            <div className="space-y-2">
-                <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Descrição</label>
-                <input type="text" value={localPageContent.description} onChange={e => setLocalPageContent({...localPageContent, description: e.target.value})} className="w-full p-3 border border-stone-200 rounded-lg" />
-            </div>
-         </div>
-       </div>
-
-       <div className="flex flex-col md:flex-row gap-8 flex-1 overflow-hidden">
-           <div className="w-full md:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-10">
-              {localWritings.map(w => (<div key={w.id} onClick={() => setEditingId(w.id)} className={`p-6 rounded-xl cursor-pointer border transition-all duration-300 ${editingId === w.id ? 'bg-[#1c1917] text-white border-transparent shadow-xl scale-[1.02]' : 'bg-white border-stone-100 hover:border-stone-300'}`}><h3 className="font-serif text-lg font-bold mb-2 line-clamp-1">{w.title}</h3><p className={`text-[10px] uppercase tracking-widest font-medium ${editingId === w.id ? 'text-stone-400' : 'text-stone-500'}`}>{w.category} • {w.date}</p></div>))}
+       <div className="flex-1 overflow-y-auto min-h-0 pb-12 pr-2 space-y-8">
+           {/* Page Header */}
+           <div className="bg-white p-8 rounded-xl border border-stone-200 shadow-sm space-y-6">
+             <h3 className="font-bold text-stone-800 text-lg border-b border-stone-100 pb-4">Cabeçalho da Página</h3>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                    <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Título da Página</label>
+                    <input type="text" value={localPageContent.title} onChange={e => setLocalPageContent({...localPageContent, title: e.target.value})} className="w-full p-4 border border-stone-200 rounded-lg bg-stone-50/50 focus:bg-white transition-colors text-lg font-serif" />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Descrição</label>
+                    <input type="text" value={localPageContent.description} onChange={e => setLocalPageContent({...localPageContent, description: e.target.value})} className="w-full p-4 border border-stone-200 rounded-lg bg-stone-50/50 focus:bg-white transition-colors" />
+                </div>
+             </div>
            </div>
-           <div className="w-full md:w-2/3 bg-white rounded-2xl shadow-sm border border-stone-200 flex flex-col overflow-hidden relative">
-             {currentEdit ? (
-               <div className="flex flex-col h-full">
-                 <div className="p-8 border-b border-stone-100 space-y-6">
-                     <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">EDITANDO</span><div className="flex items-center gap-4"><button onClick={() => removeWriting(currentEdit.id)} className="text-red-400 hover:text-red-600 text-xs flex items-center gap-2 uppercase tracking-wider font-bold"><Trash2 size={16}/> Apagar</button></div></div>
-                     <input type="text" value={currentEdit.title} onChange={e => updateWritingField(currentEdit.id, 'title', e.target.value)} className="w-full text-4xl font-serif font-bold text-stone-900 placeholder-stone-300 outline-none bg-transparent" placeholder="Título" />
+
+           <div className="space-y-4">
+             {localWritings.map(work => (
+               <div key={work.id} className="bg-white border border-stone-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 group">
+                 <div className="p-4 md:p-6 flex justify-between items-center cursor-pointer hover:bg-stone-50/80 transition-colors" onClick={() => setExpandedId(expandedId === work.id ? null : work.id)}>
+                    <div className="flex items-center gap-4 md:gap-6 flex-1 min-w-0">
+                      <div className="flex-1 min-w-0">
+                          <h3 className="font-serif text-lg md:text-xl font-bold text-stone-800 group-hover:text-stone-600 transition-colors truncate">{work.title}</h3>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                             <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 bg-stone-100 px-2 py-0.5 rounded whitespace-nowrap">{work.category}</span>
+                             <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500 hidden sm:inline">•</span>
+                             <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500 whitespace-nowrap">{work.date}</span>
+                          </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 md:gap-4 ml-2 flex-shrink-0">
+                        <button onClick={(e) => {e.stopPropagation(); removeWriting(work.id)}} className="p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"><Trash2 size={18}/></button>
+                        <div className={`p-2 text-stone-300 transition-transform duration-300 ${expandedId === work.id ? 'rotate-180' : ''}`}><ChevronDown size={24}/></div>
+                    </div>
                  </div>
-                 <div className="flex-1 overflow-y-auto p-8 space-y-8">
-                     <div className="grid grid-cols-2 gap-8">
-                       <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Categoria</label><input type="text" value={currentEdit.category} onChange={e => updateWritingField(currentEdit.id, 'category', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg" /></div>
-                       <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Data</label><input type="text" value={currentEdit.date} onChange={e => updateWritingField(currentEdit.id, 'date', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg" /></div>
+                 {expandedId === work.id && (
+                   <div className="p-4 md:p-8 border-t border-stone-100 bg-white animate-fade-in space-y-6">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Título</label><input type="text" value={work.title} onChange={e => updateWriting(work.id, 'title', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Categoria</label><input type="text" value={work.category} onChange={e => updateWriting(work.id, 'category', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Data</label><input type="text" value={work.date} onChange={e => updateWriting(work.id, 'date', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Resumo</label><input type="text" value={work.excerpt} onChange={e => updateWriting(work.id, 'excerpt', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
                      </div>
-                     <ImageInput label="Capa" value={currentEdit.coverImage || ''} onChange={(val) => updateWritingField(currentEdit.id, 'coverImage', val)} />
-                     <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Resumo</label><textarea value={currentEdit.excerpt} onChange={e => updateWritingField(currentEdit.id, 'excerpt', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg h-32 resize-none" /></div>
-                     <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Conteúdo (HTML)</label><textarea value={currentEdit.content} onChange={e => updateWritingField(currentEdit.id, 'content', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg font-mono text-sm h-80 bg-stone-50" /></div>
-                 </div>
+                     <ImageInput label="Imagem de Capa (Opcional)" value={work.coverImage} onChange={(val) => updateWriting(work.id, 'coverImage', val)} />
+                     <div className="space-y-2">
+                        <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Conteúdo (HTML)</label>
+                        <textarea value={work.content} onChange={e => updateWriting(work.id, 'content', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg h-64 font-mono text-sm bg-stone-50" />
+                        <p className="text-[10px] text-stone-400">Use tags HTML como &lt;p&gt;, &lt;br/&gt;, &lt;strong&gt; para formatar.</p>
+                     </div>
+                   </div>
+                 )}
                </div>
-             ) : <div className="flex flex-col items-center justify-center h-full text-stone-400"><BookOpen size={64} strokeWidth={0.5} className="mb-6 opacity-20 text-stone-900"/><p className="text-xl font-serif text-stone-400">Selecione um texto</p></div>}
+             ))}
            </div>
        </div>
     </div>
@@ -634,46 +764,40 @@ const WritingsEditor: React.FC<{ writings: any[], updateWritings: any, pageConte
 
 const TestimonialsEditor: React.FC<{ testimonials: any[], updateTestimonials: any }> = ({ testimonials, updateTestimonials }) => {
   const [localTestimonials, setLocalTestimonials] = useState([...testimonials]);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
 
   const save = async () => { setSaveStatus('saving'); updateTestimonials(localTestimonials); await new Promise(r => setTimeout(r, 800)); setSaveStatus('success'); setTimeout(() => setSaveStatus('idle'), 3000); };
-  const addTestimonial = () => { const newTestimonial = { id: `t-${Date.now()}`, name: "Nome", role: "Cargo", text: "Depoimento...", avatar: "" }; setLocalTestimonials([newTestimonial, ...localTestimonials]); setEditingId(newTestimonial.id); };
-  const removeTestimonial = (id: string) => { if(window.confirm("Apagar?")) { setLocalTestimonials(localTestimonials.filter(t => t.id !== id)); if(editingId === id) setEditingId(null); } }
-  const updateField = (id: string, field: string, value: string) => { setLocalTestimonials(localTestimonials.map(t => t.id === id ? { ...t, [field]: value } : t)); };
-  const currentEdit = localTestimonials.find(t => t.id === editingId);
+  
+  const addTestimonial = () => setLocalTestimonials(prev => [{ id: `t-${Date.now()}`, name: "Nome", role: "Cargo", text: "Depoimento...", avatar: "" }, ...prev]);
+  const removeTestimonial = (id: string) => setLocalTestimonials(prev => prev.filter(t => t.id !== id));
+  const updateTestimonial = (id: string, field: string, value: string) => setLocalTestimonials(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
 
   return (
-    <div className="flex flex-col h-full">
-       <div className="flex justify-between items-center mb-8 flex-shrink-0">
-         <h2 className="text-3xl font-serif font-bold text-stone-900">Depoimentos</h2>
-         <div className="flex gap-3">
-            <button onClick={addTestimonial} className="bg-stone-200 text-stone-800 px-5 py-2.5 rounded-lg hover:bg-stone-300 flex items-center justify-center gap-2 transition-colors font-medium"><Plus size={18} /> Novo</button>
-            <FeedbackSaveButton status={saveStatus} onClick={save} label="Salvar Tudo" className="px-5 py-2.5 min-w-[150px]" />
+    <div className="max-w-4xl h-full flex flex-col">
+       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 flex-shrink-0 gap-4">
+         <h2 className="text-2xl md:text-3xl font-serif font-bold text-stone-900">Gerenciar Depoimentos</h2>
+         <div className="flex gap-2 w-full md:w-auto">
+            <button onClick={addTestimonial} className="flex-1 md:flex-none bg-white border border-stone-200 text-stone-800 px-4 py-2.5 rounded-lg hover:bg-stone-50 flex items-center justify-center gap-2 transition-colors font-medium shadow-sm text-sm"><Plus size={18} /> Adicionar</button>
+            <FeedbackSaveButton status={saveStatus} onClick={save} className="flex-1 md:flex-none min-w-0" />
          </div>
        </div>
-
-       <div className="flex flex-col md:flex-row gap-8 flex-1 overflow-hidden">
-           <div className="w-full md:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-10">
-              {localTestimonials.map(t => (<div key={t.id} onClick={() => setEditingId(t.id)} className={`p-4 rounded-xl cursor-pointer border flex items-center gap-4 ${editingId === t.id ? 'bg-[#1c1917] text-white' : 'bg-white border-stone-100 hover:border-stone-300'}`}><img src={processImage(t.avatar).src} style={processImage(t.avatar).style} className="w-10 h-10 rounded-full object-cover" /><div><h3 className="font-bold text-sm">{t.name}</h3></div></div>))}
+       <div className="flex-1 overflow-y-auto space-y-6 pb-20">
+         {localTestimonials.map(t => (
+           <div key={t.id} className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm relative">
+             <button onClick={() => removeTestimonial(t.id)} className="absolute top-4 right-4 text-stone-300 hover:text-red-500 p-2"><Trash2 size={18} /></button>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Nome</label><input type="text" value={t.name} onChange={e => updateTestimonial(t.id, 'name', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
+                  <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Cargo/Empresa</label><input type="text" value={t.role} onChange={e => updateTestimonial(t.id, 'role', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
+                  <ImageInput label="Foto/Avatar" value={t.avatar} onChange={(val) => updateTestimonial(t.id, 'avatar', val)} />
+                </div>
+                <div className="space-y-2">
+                   <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Depoimento</label>
+                   <textarea value={t.text} onChange={e => updateTestimonial(t.id, 'text', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg h-full resize-none min-h-[150px]" />
+                </div>
+             </div>
            </div>
-           <div className="w-full md:w-2/3 bg-white rounded-2xl shadow-sm border border-stone-200 flex flex-col overflow-hidden relative">
-             {currentEdit ? (
-               <div className="flex flex-col h-full">
-                 <div className="p-8 border-b border-stone-100 space-y-6">
-                     <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">EDITANDO</span><button onClick={() => removeTestimonial(currentEdit.id)} className="text-red-400"><Trash2 size={16}/> Apagar</button></div>
-                     <input type="text" value={currentEdit.name} onChange={e => updateField(currentEdit.id, 'name', e.target.value)} className="w-full text-3xl font-serif font-bold" placeholder="Nome" />
-                 </div>
-                 <div className="flex-1 overflow-y-auto p-8 space-y-8">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                       <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Cargo</label><input type="text" value={currentEdit.role || ''} onChange={e => updateField(currentEdit.id, 'role', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg" /></div>
-                       <ImageInput label="Foto" value={currentEdit.avatar} onChange={(val) => updateField(currentEdit.id, 'avatar', val)} />
-                     </div>
-                     <div className="space-y-2"><label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Depoimento</label><textarea value={currentEdit.text} onChange={e => updateField(currentEdit.id, 'text', e.target.value)} className="w-full p-4 border border-stone-200 rounded-lg h-60" /></div>
-                 </div>
-               </div>
-             ) : <div className="flex flex-col items-center justify-center h-full text-stone-400"><MessageSquareQuote size={64} className="mb-6 opacity-20"/><p>Selecione um depoimento</p></div>}
-           </div>
+         ))}
        </div>
     </div>
   );
@@ -682,287 +806,63 @@ const TestimonialsEditor: React.FC<{ testimonials: any[], updateTestimonials: an
 const ThemeEditor: React.FC<{ theme: any, updateTheme: any }> = ({ theme, updateTheme }) => {
   const [localTheme, setLocalTheme] = useState(theme);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
+
   const save = async () => { setSaveStatus('saving'); updateTheme(localTheme); await new Promise(r => setTimeout(r, 800)); setSaveStatus('success'); setTimeout(() => setSaveStatus('idle'), 3000); };
   
-  const updateColor = (key: string, value: string) => setLocalTheme({ ...localTheme, colors: { ...localTheme.colors, [key]: value }});
-  const updateFont = (key: string, value: string) => setLocalTheme({ ...localTheme, fonts: { ...localTheme.fonts, [key]: value }});
-  const updateElementStyle = (element: string, field: string, value: string) => {
-     setLocalTheme({
-        ...localTheme,
-        elementStyles: {
-           ...localTheme.elementStyles,
-           [element]: {
-              ...localTheme.elementStyles?.[element],
-              [field]: value
-           }
-        }
-     });
-  };
-
-  const resetToDefaults = () => {
-    if (window.confirm("Tem certeza que deseja restaurar a aparência padrão? Isso substituirá todas as cores, fontes e estilos atuais.")) {
-      setLocalTheme(initialData.theme);
-    }
-  };
-
+  const updateColor = (key: string, val: string) => setLocalTheme({ ...localTheme, colors: { ...localTheme.colors, [key]: val } });
+  
   return (
-    <div className="max-w-2xl h-full flex flex-col">
-      <h2 className="text-3xl font-serif font-bold text-stone-900 mb-8">Aparência do Site</h2>
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-stone-100 space-y-8 flex-1 overflow-y-auto pb-20">
-        <div>
-          <h3 className="font-bold text-stone-800 mb-6 text-lg">Cores Globais</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {Object.entries(localTheme.colors).map(([key, val]: any) => (
-                <div key={key} className="space-y-2">
-                    <label className="block text-xs uppercase tracking-wider text-stone-400 mb-1">
-                      {key === 'testimonialBackground' ? 'Fundo Depoimentos' : 
-                       key === 'testimonialRole' ? 'Cor Cargo (Depoim.)' : 
-                       key === 'surface' ? 'Cor do Conteúdo (Surface)' : 
-                       key === 'background' ? 'Fundo da Página' : key}
-                    </label>
-                    <div className="flex gap-4 items-center"><input type="color" value={val} onChange={e => updateColor(key, e.target.value)} className="h-12 w-12 cursor-pointer border-2 border-stone-100 rounded-lg p-1" /><input type="text" value={val} onChange={e => updateColor(key, e.target.value)} className="flex-1 p-3 border border-stone-200 rounded-lg uppercase font-mono text-sm" /></div>
-                </div>
-            ))}
+    <div className="max-w-4xl h-full flex flex-col">
+       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 flex-shrink-0 gap-4">
+         <h2 className="text-2xl md:text-3xl font-serif font-bold text-stone-900">Aparência do Site</h2>
+         <FeedbackSaveButton status={saveStatus} onClick={save} className="w-full md:w-auto min-w-0" />
+       </div>
+       <div className="bg-white p-8 rounded-2xl shadow-sm border border-stone-100 flex-1 overflow-y-auto pb-20 space-y-8">
+          <div>
+            <h3 className="font-bold text-stone-800 text-lg border-b border-stone-100 pb-4 mb-6">Cores Globais</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                {Object.entries(localTheme.colors).map(([key, val]: [string, any]) => (
+                   <div key={key} className="flex items-center gap-4 p-4 border border-stone-100 rounded-lg">
+                      <input type="color" value={val} onChange={e => updateColor(key, e.target.value)} className="w-10 h-10 rounded cursor-pointer border-none" />
+                      <div>
+                          <p className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">{key}</p>
+                          <p className="text-xs text-stone-400 font-mono">{val}</p>
+                      </div>
+                   </div>
+                ))}
+            </div>
           </div>
-        </div>
-        <div className="pt-8 border-t border-stone-100">
-          <h3 className="font-bold text-stone-800 mb-6 text-lg">Tipografia Base</h3>
-          <div className="space-y-6">
-             <div className="space-y-2"><label className="block text-xs uppercase tracking-wider text-stone-400 mb-1">Serif</label><input type="text" value={localTheme.fonts.serif} onChange={e => updateFont('serif', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg font-mono text-sm" /></div>
-             <div className="space-y-2"><label className="block text-xs uppercase tracking-wider text-stone-400 mb-1">Sans</label><input type="text" value={localTheme.fonts.sans} onChange={e => updateFont('sans', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg font-mono text-sm" /></div>
-          </div>
-        </div>
-
-        {/* New Section: Element Styles */}
-        <div className="pt-8 border-t border-stone-100">
-          <h3 className="font-bold text-stone-800 mb-6 text-lg">Estilos de Elementos</h3>
-          <div className="space-y-8">
-            {['title', 'subtitle', 'text', 'caption'].map((elem) => (
-                <div key={elem} className="p-4 bg-stone-50 rounded-lg border border-stone-100">
-                    <h4 className="font-bold text-sm uppercase tracking-widest text-stone-600 mb-4">{elem === 'title' ? 'Títulos Principais' : elem === 'subtitle' ? 'Subtítulos / Datas' : elem === 'caption' ? 'Legendas / Overlays' : 'Textos / Corpo'}</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="block text-[10px] uppercase tracking-wider text-stone-400 font-bold">Fonte</label>
-                            <input 
-                                type="text" 
-                                value={localTheme.elementStyles?.[elem]?.font || ''} 
-                                onChange={e => updateElementStyle(elem, 'font', e.target.value)} 
-                                className="w-full p-2 border border-stone-200 rounded text-sm font-mono placeholder-stone-300"
-                                placeholder='Ex: "Inter", sans-serif'
-                            />
-                        </div>
-                        <div className="space-y-2">
-                             <label className="block text-[10px] uppercase tracking-wider text-stone-400 font-bold">Cor</label>
-                             <div className="flex gap-2 items-center">
-                                <input type="color" value={localTheme.elementStyles?.[elem]?.color || '#000000'} onChange={e => updateElementStyle(elem, 'color', e.target.value)} className="h-9 w-9 p-0.5 border border-stone-200 rounded cursor-pointer" />
-                                <input type="text" value={localTheme.elementStyles?.[elem]?.color || ''} onChange={e => updateElementStyle(elem, 'color', e.target.value)} className="flex-1 p-2 border border-stone-200 rounded text-sm font-mono uppercase" />
-                             </div>
-                        </div>
-                    </div>
-                </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="pt-8 border-t border-stone-100">
-           <h3 className="font-bold text-stone-800 mb-6 text-lg">Imagem de Capa (Home)</h3>
-           <ImageInput label="Hero Image" value={localTheme.heroImage || ''} onChange={(val) => setLocalTheme({...localTheme, heroImage: val})} />
-        </div>
-        <div className="pt-8 flex gap-4">
-           <button 
-              onClick={resetToDefaults}
-              className="px-6 py-3 rounded-lg border border-stone-200 text-stone-500 font-bold text-xs uppercase tracking-widest hover:bg-stone-100 hover:text-stone-900 transition-colors flex items-center gap-2"
-           >
-              <RotateCcw size={16} /> Restaurar Padrões
-           </button>
-           <FeedbackSaveButton status={saveStatus} onClick={save} label="Salvar & Aplicar" className="flex-1 h-14" />
-        </div>
-      </div>
+          <ImageInput label="Imagem Principal (Hero Home)" value={localTheme.heroImage} onChange={(val) => setLocalTheme({...localTheme, heroImage: val})} />
+       </div>
     </div>
   );
 };
 
 const MaintenancePanel: React.FC = () => {
-    // ... (rest of MaintenancePanel)
-    const { profile, albums, writings, testimonials, theme } = useData();
-    const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'done'>('idle');
-    const [orphanedImages, setOrphanedImages] = useState<any[]>([]);
-    const [selectedOrphans, setSelectedOrphans] = useState<string[]>([]);
-    const [deleting, setDeleting] = useState(false);
-
-    const scanImages = async () => {
-        setScanStatus('scanning');
-        setOrphanedImages([]);
-        setSelectedOrphans([]);
-        
-        // 1. Coletar todas as URLs usadas
-        const usedUrls = new Set<string>();
-        
-        // Perfil
-        if (profile.profileImage) usedUrls.add(processImage(profile.profileImage).src);
-        
-        // Tema
-        if (theme.heroImage) usedUrls.add(processImage(theme.heroImage).src);
-        
-        // Álbuns
-        albums.forEach(album => {
-            if (album.coverImage) usedUrls.add(processImage(album.coverImage).src);
-            album.photos.forEach(photo => usedUrls.add(processImage(photo.src).src));
-        });
-
-        // Escritos
-        writings.forEach(writing => {
-            if (writing.coverImage) usedUrls.add(processImage(writing.coverImage).src);
-            // Regex simples para extrair URLs de imagens dentro do HTML do content
-            const imgRegex = /src="([^"]+)"/g;
-            let match;
-            while ((match = imgRegex.exec(writing.content)) !== null) {
-                // Tenta extrair src puro se houver parâmetros
-                usedUrls.add(processImage(match[1]).src);
-            }
-        });
-
-        // Depoimentos
-        testimonials.forEach(testimonial => {
-            if (testimonial.avatar) usedUrls.add(processImage(testimonial.avatar).src);
-        });
-
-        // 2. Listar arquivos do Storage
-        try {
-            const { data: files, error } = await supabase.storage.from('portfolio-images').list('', { limit: 1000 });
-            if (error) throw error;
-            if (!files) {
-                setScanStatus('done');
-                return;
-            }
-
-            // 3. Filtrar órfãos
-            const orphans = files.filter(file => {
-                // Verificamos se o nome do arquivo aparece em alguma das URLs usadas
-                return !Array.from(usedUrls).some(url => url.includes(file.name));
-            });
-
-            setOrphanedImages(orphans);
-        } catch (e) {
-            console.error("Erro ao escanear imagens:", e);
-            alert("Erro ao conectar com o Storage.");
-        } finally {
-            setScanStatus('done');
-        }
-    };
-
-    const toggleSelect = (name: string) => {
-        if (selectedOrphans.includes(name)) {
-            setSelectedOrphans(selectedOrphans.filter(n => n !== name));
-        } else {
-            setSelectedOrphans([...selectedOrphans, name]);
-        }
-    };
-
-    const deleteSelected = async () => {
-        if (!window.confirm(`Tem certeza que deseja apagar ${selectedOrphans.length} imagens? Esta ação não pode ser desfeita.`)) return;
-
-        setDeleting(true);
-        try {
-            const { error } = await supabase.storage.from('portfolio-images').remove(selectedOrphans);
-            if (error) throw error;
-            
-            // Atualizar lista
-            setOrphanedImages(orphanedImages.filter(img => !selectedOrphans.includes(img.name)));
-            setSelectedOrphans([]);
-            alert("Imagens apagadas com sucesso.");
-        } catch (e) {
-            console.error("Erro ao apagar:", e);
-            alert("Erro ao apagar imagens.");
-        } finally {
-            setDeleting(false);
-        }
-    };
+    const { resetData } = useData();
 
     return (
         <div className="max-w-4xl h-full flex flex-col">
-            <h2 className="text-3xl font-serif font-bold text-stone-900 mb-8">Manutenção do Sistema</h2>
-            
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-stone-100 flex-1 overflow-y-auto">
-                {/* Description and Scan button */}
-                <div className="flex flex-col items-start gap-6 mb-8 border-b border-stone-100 pb-8">
-                     <p className="text-stone-500 text-sm leading-relaxed max-w-2xl">
-                        Identifique arquivos de imagem que estão salvos no servidor mas não estão sendo utilizados em nenhum lugar do site (álbuns, textos, perfil, etc.). Isso ajuda a economizar espaço e manter a organização.
-                    </p>
-                    <button 
-                        onClick={scanImages} 
-                        disabled={scanStatus === 'scanning'}
-                        className="bg-stone-900 text-white px-6 py-4 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-stone-800 transition-colors flex items-center gap-3 disabled:opacity-50 shadow-lg"
-                    >
-                        {scanStatus === 'scanning' ? <Loader2 className="animate-spin" size={18}/> : <RefreshCw size={18}/>}
-                        {scanStatus === 'scanning' ? 'Verificando...' : 'Escanear Imagens Órfãs'}
-                    </button>
-                </div>
-
-                {/* Results Section */}
-                {scanStatus === 'done' && (
-                    <div className="animate-fade-in">
-                        <div className="flex items-center justify-between mb-6">
-                            <h4 className="font-bold text-stone-600 text-sm flex items-center gap-3 uppercase tracking-wider">
-                                {orphanedImages.length === 0 ? <Check className="text-green-500" size={20}/> : <AlertTriangle className="text-amber-500" size={20}/>}
-                                {orphanedImages.length} Arquivos não utilizados encontrados
-                            </h4>
-                            {orphanedImages.length > 0 && (
-                                <button 
-                                    onClick={deleteSelected}
-                                    disabled={selectedOrphans.length === 0 || deleting}
-                                    className="text-red-500 hover:text-red-700 font-bold text-xs uppercase tracking-wider flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    {deleting ? <Loader2 className="animate-spin" size={16}/> : <Trash2 size={16}/>}
-                                    Apagar Selecionados ({selectedOrphans.length})
-                                </button>
-                            )}
-                        </div>
-
-                        {orphanedImages.length > 0 ? (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {orphanedImages.map(img => (
-                                    <div 
-                                        key={img.name} 
-                                        onClick={() => toggleSelect(img.name)}
-                                        className={`relative group cursor-pointer rounded-xl overflow-hidden transition-all aspect-square border-2 ${selectedOrphans.includes(img.name) ? 'border-red-500 shadow-md' : 'border-stone-100 hover:border-stone-300'}`}
-                                    >
-                                        <img 
-                                            src={`https://raweqyxkahiwrewxarka.supabase.co/storage/v1/object/public/portfolio-images/${img.name}`} 
-                                            className={`w-full h-full object-cover transition-all duration-300 ${selectedOrphans.includes(img.name) ? 'opacity-50 grayscale' : 'group-hover:opacity-90'}`}
-                                            alt="orphan"
-                                            loading="lazy"
-                                        />
-                                        
-                                        {/* Overlay Icon */}
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            {selectedOrphans.includes(img.name) && (
-                                                <div className="bg-red-500 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg animate-fade-in transform scale-100">
-                                                    <Trash2 size={24}/>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Metadata Footer */}
-                                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm text-white text-[10px] py-1.5 px-2 truncate text-center font-mono tracking-wide">
-                                            {(img.metadata?.size / 1024).toFixed(1)} KB
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-12 bg-stone-50 rounded-lg border border-dashed border-stone-200 text-stone-400">
-                                <Check size={48} className="mx-auto mb-4 text-green-200" />
-                                <p>Tudo limpo! Nenhuma imagem órfã detectada.</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
+             <h2 className="text-3xl font-serif font-bold text-stone-900 mb-8">Manutenção</h2>
+             <div className="bg-white p-8 rounded-2xl shadow-sm border border-stone-100 flex-1">
+                 <div className="bg-red-50 border border-red-100 rounded-lg p-6">
+                     <h3 className="text-red-800 font-bold mb-2 flex items-center gap-2">
+                         <AlertTriangle size={20} /> Zona de Perigo
+                     </h3>
+                     <p className="text-sm text-red-600 mb-6">
+                         As ações abaixo são irreversíveis. Tenha certeza do que está fazendo.
+                     </p>
+                     
+                     <button 
+                         onClick={resetData} 
+                         className="bg-white border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wide hover:bg-red-50 transition-colors flex items-center gap-2"
+                     >
+                         <RotateCcw size={16} /> Resetar Banco de Dados para Padrão
+                     </button>
+                 </div>
+             </div>
         </div>
     );
 };
-
-const XIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>);
 
 export default Admin;
