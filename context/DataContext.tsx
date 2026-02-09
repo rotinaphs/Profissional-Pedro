@@ -232,7 +232,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const syncToSupabase = async (newData: AppData) => {
-    // Atualização Otimista: Atualiza a UI imediatamente
+    // SECURITY: Save previous state to allow rollback if RLS denies the update
+    const previousData = data;
+
+    // Optimistic Update: Update UI immediately
     setData(newData);
 
     try {
@@ -243,14 +246,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error("Erro Supabase ao salvar:", error);
         
-        if (error.code === '42501') { // Permissão negada (RLS)
+        // ROLLBACK: Revert to previous state to ensure UI consistency with DB
+        setData(previousData);
+
+        if (error.code === '42501') { // Permission Denied (RLS)
             alert("Sessão expirada ou sem permissão para salvar. Por favor, faça login novamente na página Admin.");
-        } else if (error.code === '42P01') { // Tabela faltando
+        } else if (error.code === '42P01') { // Table missing
             alert("Erro: A tabela 'portfolio_config' não existe no banco de dados.");
+        } else {
+            alert("Erro ao salvar dados: " + error.message);
         }
       }
     } catch (e) {
       console.error("Erro de conexão ao salvar:", e);
+      // ROLLBACK on connection error
+      setData(previousData);
+      alert("Erro de conexão. Verifique sua internet.");
     }
   };
 

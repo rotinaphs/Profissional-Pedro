@@ -1,7 +1,7 @@
-
+// ... (imports remain the same)
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useData, processImage } from '../context/DataContext';
-import { Plus, Trash2, Save, LogOut, ChevronDown, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, Menu, RotateCcw, MousePointer2 } from 'lucide-react';
+import { Plus, Trash2, Save, LogOut, ChevronDown, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, Menu, RotateCcw, MousePointer2, Link as LinkIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
@@ -9,8 +9,10 @@ import { supabase } from '../supabase';
 const uploadToStorage = async (file: File): Promise<string> => {
   if (!file.type.startsWith('image/')) throw new Error('Apenas arquivos de imagem são permitidos.');
 
+  // Sanitize filename to avoid URL issues
   const fileExt = file.name.split('.').pop();
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+  const sanitizedName = file.name.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+  const fileName = `${Date.now()}-${sanitizedName}.${fileExt}`;
 
   const { error } = await supabase.storage.from('portfolio-images').upload(fileName, file, { cacheControl: '3600', upsert: false });
 
@@ -49,7 +51,8 @@ const useUpload = () => {
   return { isUploading, error, handleUpload, setError };
 };
 
-// --- Main Admin Component ---
+// ... (Admin component and sub-components until ImageInput remain the same, I will include them to match structure but keeping changes minimal if possible. Wait, I must provide full file content or full component content. I will provide full file content to be safe and ensure context matching)
+
 const Admin: React.FC = () => {
   const { 
     profile, albums, writings, testimonials, theme, home, portfolioPage, writingsPage,
@@ -224,7 +227,6 @@ const FeedbackSaveButton: React.FC<{ onClick: () => Promise<void> | void; status
 
 // --- Optimized Image Input with Prominent Focal Point Picker ---
 const ImageInput: React.FC<{ label: string; value: string; onChange: (val: string) => void; className?: string; }> = ({ label, value, onChange, className }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const { isUploading, error, handleUpload } = useUpload();
   const { src, style } = processImage(value);
@@ -236,7 +238,8 @@ const ImageInput: React.FC<{ label: string; value: string; onChange: (val: strin
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleUpload(e.target.files?.[0], (url) => {
         onChange(url);
-        if (fileInputRef.current) fileInputRef.current.value = '';
+        // Reset input value to allow re-selection of the same file
+        e.target.value = '';
     });
   };
 
@@ -283,10 +286,11 @@ const ImageInput: React.FC<{ label: string; value: string; onChange: (val: strin
         <div className="flex-1 space-y-3">
            <div className="flex flex-col gap-2">
               <div className="flex gap-2">
-                <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="bg-stone-200 text-stone-700 px-4 py-2 rounded text-xs font-bold uppercase tracking-wide hover:bg-stone-300 transition-colors flex items-center gap-2 disabled:opacity-50">
+                {/* Changed to Label for native mobile file picker support */}
+                <label className={`bg-stone-200 text-stone-700 px-4 py-2 rounded text-xs font-bold uppercase tracking-wide hover:bg-stone-300 transition-colors flex items-center gap-2 cursor-pointer ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <Upload size={14} /> {isUploading ? 'Enviando...' : 'Upload'}
-                </button>
-                <input type="file" ref={fileInputRef} onChange={onFileChange} className="hidden" accept="image/*" />
+                    <input type="file" onChange={onFileChange} className="hidden" accept="image/*" disabled={isUploading} />
+                </label>
               </div>
               {error && <div className="flex items-center gap-2 text-xs text-red-500 font-bold bg-red-50 p-2 rounded"><AlertTriangle size={14} /> {error}</div>}
               {value && <p className="text-[10px] text-stone-400 flex items-center gap-1"><MousePointer2 size={10} /> Clique na imagem para ajustar o foco.</p>}
@@ -298,17 +302,48 @@ const ImageInput: React.FC<{ label: string; value: string; onChange: (val: strin
   );
 };
 
-// --- Optimized Photo Item Card with Prominent Focus ---
+// --- Refactored & Robust PhotoItemEditor ---
 const PhotoItemEditor = React.memo(({ photo, albumId, updatePhoto, removePhoto }: { photo: any, albumId: string, updatePhoto: any, removePhoto: any }) => {
-    const { isUploading, error, handleUpload } = useUpload();
+    // Local state to avoid global upload conflicts and provide granular feedback
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
     const imageRef = useRef<HTMLImageElement>(null);
+    
+    // Process image URL for focal point rendering
     const { src, style } = processImage(photo.src);
-
     const posString = style.objectPosition?.toString() || '50% 50%';
     const [leftPos, topPos] = posString.split(' ');
   
-    const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-       handleUpload(e.target.files?.[0], (url) => updatePhoto(albumId, photo.id, 'src', url));
+    const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadError(null);
+
+        // Client-side Validation
+        if (!file.type.startsWith('image/')) {
+            setUploadError("Apenas imagens são permitidas.");
+            return;
+        }
+        
+        // Limit size to 5MB to ensure stability
+        if (file.size > 5 * 1024 * 1024) {
+            setUploadError("Imagem muito grande (Max 5MB).");
+            return;
+        }
+
+        setUploading(true);
+        try {
+            const url = await uploadToStorage(file);
+            updatePhoto(albumId, photo.id, 'src', url);
+        } catch (err: any) {
+            console.error(err);
+            setUploadError("Erro no upload. Tente novamente.");
+        } finally {
+            setUploading(false);
+            // Reset input to allow re-selecting the same file if needed
+            e.target.value = '';
+        }
     };
 
     const onImageClick = (e: React.MouseEvent<HTMLImageElement>) => {
@@ -317,52 +352,81 @@ const PhotoItemEditor = React.memo(({ photo, albumId, updatePhoto, removePhoto }
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
         
+        // Append or replace pos parameter
         const separator = src.includes('?') ? '&' : '?';
         updatePhoto(albumId, photo.id, 'src', `${src}${separator}pos=${x.toFixed(0)},${y.toFixed(0)}`);
     };
 
-    useEffect(() => {
-        if (error) alert(error); 
-    }, [error]);
-  
     return (
-      <div className="flex gap-4 items-start bg-stone-50 p-3 rounded-lg border border-stone-100">
+      <div className="flex gap-4 items-start bg-stone-50 p-3 rounded-lg border border-stone-100 transition-colors hover:border-stone-300">
          <div className="relative group w-20 h-20 flex-shrink-0 bg-stone-200 rounded overflow-hidden flex items-center justify-center cursor-crosshair">
-             {isUploading ? (
-                 <Loader2 className="animate-spin text-stone-400" />
+             {uploading ? (
+                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-100 z-30">
+                     <Loader2 className="animate-spin text-stone-500 mb-1" size={20} />
+                     <span className="text-[8px] font-bold text-stone-400 uppercase">Enviando</span>
+                 </div>
              ) : (
                  <>
                     <img 
                         ref={imageRef}
                         src={src} 
-                        className="w-full h-full object-cover" 
+                        className="w-full h-full object-cover transition-opacity group-hover:opacity-90" 
                         alt="thumb"
                         style={style}
                         onClick={onImageClick}
                         title="Clique para definir o ponto de foco"
                     />
-                     {/* Prominent Focal Point Indicator (Small) */}
+                     {/* Focal Point Indicator */}
                     <div 
-                        className="absolute w-4 h-4 rounded-full border border-white bg-red-500/60 shadow-sm pointer-events-none transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-all duration-200 z-10"
+                        className="absolute w-3 h-3 rounded-full border border-white bg-red-500/80 shadow-sm pointer-events-none transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-all z-10"
                         style={{ left: leftPos, top: topPos }}
                     >
-                        <div className="w-1 h-1 bg-white rounded-full shadow-sm" />
+                        <div className="w-0.5 h-0.5 bg-white rounded-full" />
                     </div>
 
-                    <label className="absolute inset-0 flex items-end justify-end p-1 opacity-0 group-hover:opacity-100 pointer-events-none z-20">
-                       <div className="bg-black/50 text-white p-1 rounded pointer-events-auto cursor-pointer hover:bg-black/70">
-                           <Upload size={12} />
-                           <input type="file" className="hidden" accept="image/*" onChange={onUpload} disabled={isUploading} />
-                       </div>
+                    {/* Change upload to a small button in the corner to allow focal point adjustment on the rest of the image */}
+                    <label className="absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-black/80 text-white rounded cursor-pointer z-20 opacity-0 group-hover:opacity-100 transition-all shadow-sm" title="Substituir Imagem">
+                       <Upload size={12} />
+                       <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*" 
+                            onChange={onFileChange} 
+                            disabled={uploading} 
+                       />
                     </label>
                  </>
              )}
          </div>
-         <div className="flex-1 space-y-2">
-            <input type="text" placeholder="URL da Imagem" value={photo.src} onChange={e => updatePhoto(albumId, photo.id, 'src', e.target.value)} className="w-full p-2 border border-stone-200 rounded text-xs" />
-            <input type="text" placeholder="Legenda/Título" value={photo.caption || ''} onChange={e => updatePhoto(albumId, photo.id, 'caption', e.target.value)} className="w-full p-2 border border-stone-200 rounded text-xs" />
+         
+         <div className="flex-1 space-y-2 min-w-0">
+            <div className="flex flex-col gap-1">
+                <input 
+                    type="text" 
+                    placeholder="URL da Imagem" 
+                    value={photo.src} 
+                    onChange={e => updatePhoto(albumId, photo.id, 'src', e.target.value)} 
+                    className="w-full p-2 border border-stone-200 rounded text-xs focus:border-stone-400 focus:outline-none transition-colors" 
+                    disabled={uploading}
+                />
+                {uploadError && <span className="text-[10px] text-red-500 font-bold flex items-center gap-1"><AlertTriangle size={10} /> {uploadError}</span>}
+            </div>
+            <input 
+                type="text" 
+                placeholder="Legenda/Título (Opcional)" 
+                value={photo.caption || ''} 
+                onChange={e => updatePhoto(albumId, photo.id, 'caption', e.target.value)} 
+                className="w-full p-2 border border-stone-200 rounded text-xs focus:border-stone-400 focus:outline-none transition-colors" 
+            />
          </div>
-         <button onClick={() => removePhoto(albumId, photo.id)} className="text-stone-400 hover:text-red-500 p-1"><X size={18} /></button>
+         
+         <button 
+            onClick={() => removePhoto(albumId, photo.id)} 
+            className="text-stone-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all self-center"
+            title="Remover foto"
+         >
+            <X size={18} />
+         </button>
       </div>
     );
 }, (prev, next) => {
@@ -371,6 +435,7 @@ const PhotoItemEditor = React.memo(({ photo, albumId, updatePhoto, removePhoto }
            prev.photo.id === next.photo.id;
 });
 
+// ... (Rest of editors remain the same)
 // --- Editors ---
 
 const HomeEditor: React.FC<{ home: any, updateHome: any }> = ({ home, updateHome }) => {
@@ -448,9 +513,6 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent:
   const [expandedAlbum, setExpandedAlbum] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
 
-  // NEW: Bulk Upload State
-  const bulkInputRef = useRef<HTMLInputElement>(null);
-  const [bulkTargetId, setBulkTargetId] = useState<string | null>(null);
   const [isBulkUploading, setIsBulkUploading] = useState(false);
 
   const save = async () => { 
@@ -502,20 +564,16 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent:
      }));
   }, []);
 
-  // NEW: Bulk Upload Handler
-  const handleBulkUploadClick = (albumId: string) => {
-    setBulkTargetId(albumId);
-    if (bulkInputRef.current) bulkInputRef.current.click();
-  };
-
-  const handleBulkFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // NEW: Robust Bulk Upload using Native Label - No Refs required
+  const handleBulkFileChange = async (e: React.ChangeEvent<HTMLInputElement>, albumId: string) => {
     const files = e.target.files;
-    if (!files || files.length === 0 || !bulkTargetId) return;
+    if (!files || files.length === 0) return;
 
     setIsBulkUploading(true);
     setSaveStatus('saving');
 
     try {
+        // Parallel Uploads
         const uploadPromises = Array.from(files).map(async (file: File) => {
             const url = await uploadToStorage(file);
             return {
@@ -529,7 +587,7 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent:
         const newPhotos = await Promise.all(uploadPromises);
 
         const updatedAlbums = localAlbums.map(a => {
-            if (a.id === bulkTargetId) {
+            if (a.id === albumId) {
                 return { ...a, photos: [...a.photos, ...newPhotos] };
             }
             return a;
@@ -543,24 +601,14 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent:
         alert("Erro ao fazer upload de imagens.");
     } finally {
         setIsBulkUploading(false);
-        setBulkTargetId(null);
-        if (bulkInputRef.current) bulkInputRef.current.value = '';
+        // Important: Reset input value to allow uploading same files again if needed
+        e.target.value = '';
         setTimeout(() => setSaveStatus('idle'), 3000);
     }
   };
 
   return (
     <div className="max-w-5xl h-full flex flex-col">
-       {/* NEW: Hidden Input */}
-       <input 
-          type="file" 
-          ref={bulkInputRef} 
-          multiple 
-          accept="image/*" 
-          className="hidden" 
-          onChange={handleBulkFileChange} 
-       />
-
        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 flex-shrink-0 gap-4">
          <h2 className="text-2xl md:text-3xl font-serif font-bold text-stone-900">Gerenciar Portfólio</h2>
          <div className="flex gap-2 w-full md:w-auto">
@@ -626,20 +674,25 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent:
                         <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Descrição</label><textarea value={album.description} onChange={e => updateAlbumField(album.id, 'description', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg h-24 resize-none" /></div>
                      </div>
                      
-                     {/* Updated Gallery Header with Bulk Upload Button */}
-                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 border-b border-stone-100 pb-2 gap-3">
+                     {/* Updated Gallery Header with Mobile-First Action Buttons using Label instead of programmatic click */}
+                     <div className="flex flex-col gap-4 mb-6 border-b border-stone-100 pb-4">
                         <h4 className="font-bold text-sm text-stone-500 uppercase tracking-widest">Galeria</h4>
-                        <div className="flex gap-2 w-full sm:w-auto">
-                            <button onClick={() => addPhoto(album.id)} className="flex-1 sm:flex-none text-xs font-bold text-stone-500 hover:text-stone-800 uppercase tracking-wider flex items-center justify-center gap-1 border border-stone-200 px-3 py-1.5 rounded bg-white hover:bg-stone-50">
-                               <Plus size={14}/> Vazio
-                            </button>
-                            <button 
-                               onClick={() => handleBulkUploadClick(album.id)} 
-                               disabled={isBulkUploading}
-                               className="flex-1 sm:flex-none text-xs font-bold text-white bg-stone-900 hover:bg-stone-800 uppercase tracking-wider flex items-center justify-center gap-2 px-3 py-1.5 rounded shadow-sm disabled:opacity-70 transition-colors"
-                            >
-                               {isBulkUploading && bulkTargetId === album.id ? <Loader2 size={14} className="animate-spin"/> : <Upload size={14}/>}
-                               Upload Múltiplo
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label className={`flex items-center justify-center gap-3 bg-stone-900 text-white hover:bg-stone-800 py-3 rounded-lg shadow-sm font-medium transition-colors w-full cursor-pointer ${isBulkUploading ? 'opacity-70 cursor-wait' : ''}`}>
+                               {isBulkUploading ? <Loader2 size={18} className="animate-spin"/> : <Upload size={18}/>}
+                               {isBulkUploading ? 'Enviando...' : 'Adicionar Fotos (Upload)'}
+                               <input 
+                                    type="file" 
+                                    multiple 
+                                    accept="image/*" 
+                                    className="hidden" 
+                                    onChange={(e) => handleBulkFileChange(e, album.id)} 
+                                    disabled={isBulkUploading}
+                               />
+                            </label>
+                            
+                            <button onClick={() => addPhoto(album.id)} className="flex items-center justify-center gap-2 border border-stone-200 text-stone-600 hover:bg-stone-50 py-3 rounded-lg font-medium transition-colors w-full text-xs uppercase tracking-wide">
+                               <LinkIcon size={14}/> Adicionar Item Vazio (URL)
                             </button>
                         </div>
                      </div>
