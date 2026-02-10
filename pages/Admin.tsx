@@ -1,9 +1,31 @@
-// ... (imports remain the same)
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useData, processImage } from '../context/DataContext';
 import { Plus, Trash2, Save, LogOut, ChevronDown, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, Menu, RotateCcw, MousePointer2, Link as LinkIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
+
+// --- Utility: Auto Save Hook ---
+const useAutoSave = (callback: () => void, dependencies: any[], delay = 2000) => {
+  const callbackRef = useRef(callback);
+  const firstRender = useRef(true);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    const handler = setTimeout(() => {
+      callbackRef.current();
+    }, delay);
+
+    return () => clearTimeout(handler);
+  }, dependencies);
+};
 
 // --- Utility: Upload Logic (Pure Function) ---
 const uploadToStorage = async (file: File): Promise<string> => {
@@ -51,8 +73,7 @@ const useUpload = () => {
   return { isUploading, error, handleUpload, setError };
 };
 
-// ... (Admin component and sub-components until ImageInput remain the same, I will include them to match structure but keeping changes minimal if possible. Wait, I must provide full file content or full component content. I will provide full file content to be safe and ensure context matching)
-
+// --- Main Admin Component ---
 const Admin: React.FC = () => {
   const { 
     profile, albums, writings, testimonials, theme, home, portfolioPage, writingsPage,
@@ -406,7 +427,7 @@ const PhotoItemEditor = React.memo(({ photo, albumId, updatePhoto, removePhoto }
                     placeholder="URL da Imagem" 
                     value={photo.src} 
                     onChange={e => updatePhoto(albumId, photo.id, 'src', e.target.value)} 
-                    className="w-full p-2 border border-stone-200 rounded text-xs focus:border-stone-400 focus:outline-none transition-colors" 
+                    className="w-full p-2 border border-stone-200 rounded text-xs focus:border-stone-400 focus:outline-none transition-colors text-stone-800" 
                     disabled={uploading}
                 />
                 {uploadError && <span className="text-[10px] text-red-500 font-bold flex items-center gap-1"><AlertTriangle size={10} /> {uploadError}</span>}
@@ -416,7 +437,7 @@ const PhotoItemEditor = React.memo(({ photo, albumId, updatePhoto, removePhoto }
                 placeholder="Legenda/Título (Opcional)" 
                 value={photo.caption || ''} 
                 onChange={e => updatePhoto(albumId, photo.id, 'caption', e.target.value)} 
-                className="w-full p-2 border border-stone-200 rounded text-xs focus:border-stone-400 focus:outline-none transition-colors" 
+                className="w-full p-2 border border-stone-200 rounded text-xs focus:border-stone-400 focus:outline-none transition-colors text-stone-800" 
             />
          </div>
          
@@ -435,7 +456,6 @@ const PhotoItemEditor = React.memo(({ photo, albumId, updatePhoto, removePhoto }
            prev.photo.id === next.photo.id;
 });
 
-// ... (Rest of editors remain the same)
 // --- Editors ---
 
 const HomeEditor: React.FC<{ home: any, updateHome: any }> = ({ home, updateHome }) => {
@@ -443,7 +463,10 @@ const HomeEditor: React.FC<{ home: any, updateHome: any }> = ({ home, updateHome
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
     const handleChange = (field: string, value: string) => setLocalHome({ ...localHome, [field]: value });
     const save = async () => { setSaveStatus('saving'); updateHome(localHome); await new Promise(r => setTimeout(r, 800)); setSaveStatus('success'); setTimeout(() => setSaveStatus('idle'), 3000); };
-  
+    
+    // Auto-Save
+    useAutoSave(save, [localHome]);
+
     return (
       <div className="max-w-4xl h-full flex flex-col">
         <h2 className="text-3xl font-serif font-bold text-stone-900 mb-8">Conteúdo da Página Inicial</h2>
@@ -478,6 +501,9 @@ const ProfileEditor: React.FC<{ profile: any, updateProfile: any }> = ({ profile
   };
   const handleBioChange = (idx: number, val: string) => { const newBio = [...localProfile.bio]; newBio[idx] = val; setLocalProfile({ ...localProfile, bio: newBio }); };
   const save = async () => { setSaveStatus('saving'); updateProfile(localProfile); await new Promise(r => setTimeout(r, 800)); setSaveStatus('success'); setTimeout(() => setSaveStatus('idle'), 3000); };
+
+  // Auto-Save
+  useAutoSave(save, [localProfile]);
 
   return (
     <div className="max-w-4xl h-full flex flex-col">
@@ -523,6 +549,9 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent:
     setTimeout(() => setSaveStatus('idle'), 3000); 
   };
   
+  // Auto-Save
+  useAutoSave(save, [localAlbums, localPageContent]);
+
   const addAlbum = () => { 
     const newAlbum = { id: `new-album-${Date.now()}`, title: "Novo Álbum", description: "Descrição...", date: new Date().getFullYear().toString(), coverImage: "https://picsum.photos/800/600", photos: [] }; 
     setLocalAlbums(prev => [newAlbum, ...prev]); 
@@ -731,6 +760,9 @@ const WritingsEditor: React.FC<{ writings: any[], updateWritings: any, pageConte
     setSaveStatus('success');
     setTimeout(() => setSaveStatus('idle'), 3000);
   };
+  
+  // Auto-Save
+  useAutoSave(save, [localWritings, localPageContent]);
 
   const addWriting = () => {
     const newWork = { id: `work-${Date.now()}`, title: "Novo Texto", category: "Crônica", excerpt: "", content: "<p>Conteúdo aqui...</p>", date: new Date().toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'}), coverImage: "" };
@@ -821,6 +853,9 @@ const TestimonialsEditor: React.FC<{ testimonials: any[], updateTestimonials: an
 
   const save = async () => { setSaveStatus('saving'); updateTestimonials(localTestimonials); await new Promise(r => setTimeout(r, 800)); setSaveStatus('success'); setTimeout(() => setSaveStatus('idle'), 3000); };
   
+  // Auto-Save
+  useAutoSave(save, [localTestimonials]);
+
   const addTestimonial = () => setLocalTestimonials(prev => [{ id: `t-${Date.now()}`, name: "Nome", role: "Cargo", text: "Depoimento...", avatar: "" }, ...prev]);
   const removeTestimonial = (id: string) => setLocalTestimonials(prev => prev.filter(t => t.id !== id));
   const updateTestimonial = (id: string, field: string, value: string) => setLocalTestimonials(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
@@ -862,6 +897,9 @@ const ThemeEditor: React.FC<{ theme: any, updateTheme: any }> = ({ theme, update
 
   const save = async () => { setSaveStatus('saving'); updateTheme(localTheme); await new Promise(r => setTimeout(r, 800)); setSaveStatus('success'); setTimeout(() => setSaveStatus('idle'), 3000); };
   
+  // Auto-Save
+  useAutoSave(save, [localTheme]);
+
   const updateColor = (key: string, val: string) => setLocalTheme({ ...localTheme, colors: { ...localTheme.colors, [key]: val } });
   
   return (

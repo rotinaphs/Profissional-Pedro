@@ -11,6 +11,10 @@ const Home: React.FC = () => {
   const heroImageRaw = theme.heroImage || albums[0]?.photos[0]?.src || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80";
   const { src: heroSrc, style: heroStyle } = processImage(heroImageRaw);
 
+  // Determine visibility to ensure grid is always full (no empty spaces)
+  // We limit to 4 items max for the preview section
+  const visibleAlbums = albums.slice(0, 4);
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -101,10 +105,31 @@ const Home: React.FC = () => {
 
       {/* Featured Albums Preview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {albums.slice(0, 3).map((album, index) => {
+        {visibleAlbums.map((album, index) => {
           const { src, style } = processImage(album.coverImage);
+          
+          // Responsive Visibility Logic:
+          // Mobile (1 col): Show all (1, 2, 3, 4)
+          // Tablet (2 cols): Show multiples of 2 (2 or 4). Hide 3rd if only 3 exist.
+          // Desktop (3 cols): Show multiples of 3 (3). Hide 4th if 4 exist.
+          
+          let visibilityClass = "block";
+          
+          if (index === 2) {
+             // 3rd Item: If we only have 3 items, hiding this on tablet ensures we show 2 items (full row), avoiding a hole.
+             if (visibleAlbums.length === 3) {
+                 visibilityClass = "block md:hidden lg:block";
+             }
+          }
+          
+          if (index === 3) {
+             // 4th Item: Always hide on desktop (3 cols) to prevent hanging item (showing 3 is better than 4 with 2 holes).
+             // Show on tablet (2 cols) because 4 items fill the grid perfectly.
+             visibilityClass = "block lg:hidden";
+          }
+
           return (
-            <FadeIn key={album.id} delay={index * 200} className="h-full">
+            <FadeIn key={album.id} delay={index * 200} className={`h-full ${visibilityClass}`}>
                 <Link to={`/portfolio/${album.id}`} className="group relative h-96 overflow-hidden block">
                 <div 
                     className="absolute inset-0 bg-cover transition-transform duration-700 group-hover:scale-110"
