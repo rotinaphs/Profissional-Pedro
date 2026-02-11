@@ -96,7 +96,7 @@ const Home: React.FC = () => {
             </p>
           </FadeIn>
           <FadeIn delay={600}>
-            <Link to="/about" className="inline-flex items-center text-stone-900 font-medium hover:text-stone-600 transition-colors uppercase tracking-widest text-sm border-b border-stone-900 pb-1">
+            <Link to="/about" className="inline-flex items-center text-stone-900 font-sans font-medium hover:text-stone-600 transition-colors uppercase tracking-widest text-sm border-b border-stone-900 pb-1">
               Conheça o autor <ArrowRight size={16} className="ml-2" />
             </Link>
           </FadeIn>
