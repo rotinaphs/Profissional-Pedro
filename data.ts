@@ -55,6 +55,7 @@ export const initialData: AppData = {
     ],
     contact: {
       email: "contato@pedrohenrique.com",
+      phone: "+55 11 99999-9999",
       instagram: "@pedrohenrique.art",
       linkedin: "linkedin.com/in/pedrohenrique"
     },
@@ -100,7 +101,7 @@ export const initialData: AppData = {
         { id: "r2", src: "https://picsum.photos/id/65/1200/800", alt: "Rosto expressivo", caption: "Marcas do tempo" },
         { id: "r3", src: "https://picsum.photos/id/91/1200/800", alt: "Mãos", caption: "Trabalho manual" },
       ]
-    }
+    },
   ],
   writings: [
     {

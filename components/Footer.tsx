@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Instagram, Mail, Linkedin } from 'lucide-react';
+import { Instagram, Mail, Linkedin, Phone } from 'lucide-react';
 import { useData } from '../context/DataContext';
 
 const Footer: React.FC = () => {
@@ -36,6 +37,16 @@ const Footer: React.FC = () => {
           >
             <Mail size={24} strokeWidth={1.5} />
           </a>
+
+          {profile.contact.phone && (
+            <a 
+              href={`tel:${profile.contact.phone.replace(/[^\d+]/g, '')}`} 
+              className={iconLinkClass}
+              aria-label="Phone"
+            >
+              <Phone size={24} strokeWidth={1.5} />
+            </a>
+          )}
           
           <a 
             href={getInstagramUrl(profile.contact.instagram)}

@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useData, processImage } from '../context/DataContext';
-import { Plus, Trash2, Save, LogOut, ChevronDown, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, Menu, RotateCcw, MousePointer2, Link as LinkIcon } from 'lucide-react';
+import { Plus, Trash2, Save, LogOut, ChevronDown, Settings, Image as ImageIcon, BookOpen, User, ArrowLeft, MessageSquareQuote, Upload, X, Check, Loader2, Layout, Lock, AlertTriangle, HardDrive, Menu, RotateCcw, MousePointer2, Link as LinkIcon, FileText, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
@@ -29,7 +29,10 @@ const useAutoSave = (callback: () => void, dependencies: any[], delay = 1000) =>
 
 // --- Utility: Upload Logic (Pure Function) ---
 const uploadToStorage = async (file: File): Promise<string> => {
-  if (!file.type.startsWith('image/')) throw new Error('Apenas arquivos de imagem são permitidos.');
+  // Validate type: Allow images and PDFs
+  if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+    throw new Error('Apenas arquivos de imagem ou PDF são permitidos.');
+  }
 
   const fileExt = file.name.split('.').pop();
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
@@ -69,7 +72,7 @@ const useUpload = () => {
       const url = await uploadToStorage(file);
       onSuccess(url);
     } catch (err: any) {
-       const msg = (err.message || 'Falha ao enviar imagem.');
+       const msg = (err.message || 'Falha ao enviar arquivo.');
        setError(msg);
     } finally {
       setIsUploading(false);
@@ -261,6 +264,56 @@ const FeedbackSaveButton: React.FC<{ onClick: () => Promise<void> | void; status
   );
 };
 
+// --- PDF Input Component ---
+const PdfInput: React.FC<{ label: string; value: string | undefined; onChange: (val: string) => void; className?: string; compact?: boolean }> = ({ label, value, onChange, className, compact = false }) => {
+  const { isUploading, error, handleUpload } = useUpload();
+  
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleUpload(e.target.files?.[0], (url) => {
+        onChange(url);
+        e.target.value = '';
+    });
+  };
+
+  const isPdf = value?.toLowerCase().endsWith('.pdf');
+
+  return (
+    <div className={`space-y-2 ${className}`}>
+      <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">{label}</label>
+      <div className="flex flex-col gap-3">
+         <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+            <div className="flex-1 w-full">
+              <input 
+                type="text" 
+                value={value || ''} 
+                onChange={(e) => onChange(e.target.value)} 
+                className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs outline-none" 
+                placeholder="URL do PDF..." 
+              />
+            </div>
+            <label className={`bg-stone-200 text-stone-700 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-stone-300 transition-colors flex items-center gap-2 cursor-pointer whitespace-nowrap ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <Upload size={14} /> {isUploading ? 'Enviando...' : 'Upload PDF'}
+                <input type="file" onChange={onFileChange} className="hidden" accept="application/pdf" disabled={isUploading} />
+            </label>
+         </div>
+         {error && <div className="text-xs text-red-500 font-bold flex items-center gap-1"><AlertTriangle size={14} /> {error}</div>}
+         
+         {value && isPdf && (
+           <div className={`bg-stone-100 rounded-lg border border-stone-200 overflow-hidden ${compact ? 'p-2' : 'p-4'}`}>
+              <div className="flex items-center justify-between mb-2">
+                 <span className="text-[10px] font-bold text-stone-500 uppercase flex items-center gap-2"><FileText size={14} /> Pré-visualização do Documento</span>
+                 <a href={value} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-stone-700 hover:text-stone-900 flex items-center gap-1 bg-white px-2 py-1 rounded border border-stone-200 hover:bg-stone-50"><ExternalLink size={12} /> Abrir em nova aba</a>
+              </div>
+              {!compact && (
+                <iframe src={value} className="w-full h-64 sm:h-80 md:h-96 lg:h-[30rem] bg-white border border-stone-200 rounded" title="PDF Preview"></iframe>
+              )}
+           </div>
+         )}
+      </div>
+    </div>
+  );
+};
+
 const ImageInput: React.FC<{ label: string; value: string; onChange: (val: string) => void; className?: string; }> = ({ label, value, onChange, className }) => {
   const imageRef = useRef<HTMLImageElement>(null);
   const { isUploading, error, handleUpload } = useUpload();
@@ -320,6 +373,7 @@ const ImageInput: React.FC<{ label: string; value: string; onChange: (val: strin
 const PhotoItemEditor: React.FC<{ photo: any, albumId: string, updatePhoto: any, removePhoto: any }> = ({ photo, albumId, updatePhoto, removePhoto }) => {
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
+    const [showPdf, setShowPdf] = useState(!!photo.pdfUrl);
     const imageRef = useRef<HTMLImageElement>(null);
     
     const { src, style } = processImage(photo.src);
@@ -357,46 +411,57 @@ const PhotoItemEditor: React.FC<{ photo: any, albumId: string, updatePhoto: any,
     };
 
     return (
-      <div className="flex gap-4 items-start bg-stone-50 p-3 rounded-lg border border-stone-100 transition-colors hover:border-stone-300">
-         <div className="relative group w-20 h-20 flex-shrink-0 bg-stone-200 rounded overflow-hidden flex items-center justify-center cursor-crosshair">
-             {uploading ? (
-                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-100 z-30"><Loader2 className="animate-spin text-stone-500 mb-1" size={20} /><span className="text-[8px] font-bold text-stone-400 uppercase">Enviando</span></div>
-             ) : (
-                 <>
-                    <img ref={imageRef} src={src} className="w-full h-full object-cover transition-opacity group-hover:opacity-90" alt="thumb" style={style} onClick={onImageClick} title="Clique para definir o ponto de foco" />
-                    <div className="absolute w-3 h-3 rounded-full border border-white bg-red-500/80 shadow-sm pointer-events-none transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-10" style={{ left: leftPos, top: topPos }}><div className="w-0.5 h-0.5 bg-white rounded-full" /></div>
-                    <label className="absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-black/80 text-white rounded cursor-pointer z-20 opacity-0 group-hover:opacity-100 transition-all shadow-sm" title="Substituir Imagem">
-                       <Upload size={12} />
-                       <input type="file" className="hidden" accept="image/*" onChange={onFileChange} disabled={uploading} />
-                    </label>
-                 </>
-             )}
-         </div>
-         
-         <div className="flex-1 space-y-2 min-w-0">
-            <div className="flex flex-col gap-1">
-                <input 
-                    type="text" 
-                    placeholder="URL da Imagem" 
-                    value={photo.src} 
-                    onChange={e => updatePhoto(albumId, photo.id, 'src', e.target.value)} 
-                    onBlur={() => updatePhoto(albumId, photo.id, 'src', photo.src, true)} // FORCE SAVE
-                    className="w-full p-2 border border-stone-200 rounded text-xs focus:border-stone-400 focus:outline-none transition-colors text-stone-800 bg-white" 
-                    disabled={uploading}
-                />
-                {uploadError && <span className="text-[10px] text-red-500 font-bold flex items-center gap-1"><AlertTriangle size={10} /> {uploadError}</span>}
-            </div>
-            <input 
-                type="text" 
-                placeholder="Legenda/Título (Opcional)" 
-                value={photo.caption || ''} 
-                onChange={e => updatePhoto(albumId, photo.id, 'caption', e.target.value)} 
-                onBlur={() => updatePhoto(albumId, photo.id, 'caption', photo.caption, true)} // FORCE SAVE
-                className="w-full p-2 border border-stone-200 rounded text-xs focus:border-stone-400 focus:outline-none transition-colors text-stone-800 bg-white" 
-            />
-         </div>
-         
-         <button onClick={() => removePhoto(albumId, photo.id)} className="text-stone-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all self-center" title="Remover foto"><X size={18} /></button>
+      <div className="flex flex-col gap-3 bg-stone-50 p-3 rounded-lg border border-stone-100 transition-colors hover:border-stone-300">
+        <div className="flex gap-4 items-start">
+          <div className="relative group w-20 h-20 flex-shrink-0 bg-stone-200 rounded overflow-hidden flex items-center justify-center cursor-crosshair">
+              {uploading ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-100 z-30"><Loader2 className="animate-spin text-stone-500 mb-1" size={20} /><span className="text-[8px] font-bold text-stone-400 uppercase">Enviando</span></div>
+              ) : (
+                  <>
+                      <img ref={imageRef} src={src} className="w-full h-full object-cover transition-opacity group-hover:opacity-90" alt="thumb" style={style} onClick={onImageClick} title="Clique para definir o ponto de foco" />
+                      <div className="absolute w-3 h-3 rounded-full border border-white bg-red-500/80 shadow-sm pointer-events-none transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-10" style={{ left: leftPos, top: topPos }}><div className="w-0.5 h-0.5 bg-white rounded-full" /></div>
+                      <label className="absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center bg-black/60 hover:bg-black/80 text-white rounded cursor-pointer z-20 opacity-0 group-hover:opacity-100 transition-all shadow-sm" title="Substituir Imagem">
+                        <Upload size={12} />
+                        <input type="file" className="hidden" accept="image/*" onChange={onFileChange} disabled={uploading} />
+                      </label>
+                  </>
+              )}
+          </div>
+          
+          <div className="flex-1 space-y-2 min-w-0">
+              <div className="flex flex-col gap-1">
+                  <input 
+                      type="text" 
+                      placeholder="URL da Imagem" 
+                      value={photo.src} 
+                      onChange={e => updatePhoto(albumId, photo.id, 'src', e.target.value)} 
+                      onBlur={() => updatePhoto(albumId, photo.id, 'src', photo.src, true)} // FORCE SAVE
+                      className="w-full p-2 border border-stone-200 rounded text-xs focus:border-stone-400 focus:outline-none transition-colors text-stone-800 bg-white" 
+                      disabled={uploading}
+                  />
+                  {uploadError && <span className="text-[10px] text-red-500 font-bold flex items-center gap-1"><AlertTriangle size={10} /> {uploadError}</span>}
+              </div>
+              <input 
+                  type="text" 
+                  placeholder="Legenda/Título (Opcional)" 
+                  value={photo.caption || ''} 
+                  onChange={e => updatePhoto(albumId, photo.id, 'caption', e.target.value)} 
+                  onBlur={() => updatePhoto(albumId, photo.id, 'caption', photo.caption, true)} // FORCE SAVE
+                  className="w-full p-2 border border-stone-200 rounded text-xs focus:border-stone-400 focus:outline-none transition-colors text-stone-800 bg-white" 
+              />
+          </div>
+          
+          <div className="flex flex-col gap-2">
+            <button onClick={() => removePhoto(albumId, photo.id)} className="text-stone-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all" title="Remover foto"><X size={18} /></button>
+            <button onClick={() => setShowPdf(!showPdf)} className={`p-2 rounded-lg transition-all ${showPdf || photo.pdfUrl ? 'text-stone-800 bg-stone-200' : 'text-stone-300 hover:text-stone-600 hover:bg-stone-100'}`} title="Anexar PDF"><FileText size={18} /></button>
+          </div>
+        </div>
+
+        {(showPdf || photo.pdfUrl) && (
+           <div className="pt-2 border-t border-stone-200">
+              <PdfInput label="Anexo PDF (Opcional)" value={photo.pdfUrl} onChange={(val) => updatePhoto(albumId, photo.id, 'pdfUrl', val, true)} compact />
+           </div>
+        )}
       </div>
     );
 };
@@ -461,8 +526,9 @@ const ProfileEditor: React.FC<{ profile: any, updateProfile: any }> = ({ profile
              {localProfile.bio.length > 1 && <button onClick={() => setLocalProfile({...localProfile, bio: localProfile.bio.slice(0, -1)})} className="text-xs font-bold text-red-400 hover:text-red-600">Remover Último</button>}
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-stone-100">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-stone-100">
           <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Email</label><input type="text" value={localProfile.contact.email} onChange={e => handleChange(e, 'contact', 'email')} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
+          <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Telefone</label><input type="text" value={localProfile.contact.phone || ''} onChange={e => handleChange(e, 'contact', 'phone')} className="w-full p-3 border border-stone-200 rounded-lg" placeholder="+55 11 99999-9999" /></div>
           <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Instagram</label><input type="text" value={localProfile.contact.instagram} onChange={e => handleChange(e, 'contact', 'instagram')} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
           <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">LinkedIn</label><input type="text" value={localProfile.contact.linkedin} onChange={e => handleChange(e, 'contact', 'linkedin')} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
         </div>
@@ -617,6 +683,7 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent:
                         <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Data</label><input type="text" value={album.date} onChange={e => updateAlbumField(album.id, 'date', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
                         <div className="col-span-2 space-y-2"><ImageInput label="Capa do Álbum" value={album.coverImage} onChange={(val) => updateAlbumField(album.id, 'coverImage', val)} /></div>
                         <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Descrição</label><textarea value={album.description} onChange={e => updateAlbumField(album.id, 'description', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg h-24 resize-none" /></div>
+                        <div className="col-span-2 space-y-2"><PdfInput label="Documento PDF (Album) - Opcional" value={album.pdfUrl} onChange={(val) => updateAlbumField(album.id, 'pdfUrl', val)} /></div>
                      </div>
                      <div className="flex flex-col gap-4 mb-6 border-b border-stone-100 pb-4">
                         <h4 className="font-bold text-sm text-stone-500 uppercase tracking-widest">Galeria</h4>

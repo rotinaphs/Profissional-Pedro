@@ -1,5 +1,6 @@
+
 import React, { useEffect, useCallback, useState, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, FileText, ExternalLink } from 'lucide-react';
 import { Photo } from '../types';
 
 interface LightboxProps {
@@ -225,15 +226,31 @@ const Lightbox: React.FC<LightboxProps> = ({ photo, onClose, onNext, onPrev, has
         />
       </div>
 
-      {/* Caption */}
-      {photo.caption && scale === 1 && (
-        <div className="absolute bottom-8 left-0 right-0 text-center pointer-events-none px-6">
-          <p 
-            className="text-stone-300 font-serif italic tracking-wide inline-block bg-black/50 px-6 py-3 rounded-full"
-            style={{ fontSize: 'var(--font-size-caption)' }}
-          >
-            {photo.caption}
-          </p>
+      {/* Caption & PDF Link */}
+      {(photo.caption || photo.pdfUrl) && scale === 1 && (
+        <div className="absolute bottom-8 left-0 right-0 flex flex-col items-center gap-4 pointer-events-none px-6">
+          {photo.pdfUrl && (
+             <a 
+               href={photo.pdfUrl} 
+               target="_blank" 
+               rel="noopener noreferrer"
+               className="pointer-events-auto flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-6 py-2 rounded-full transition-all border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
+               onClick={(e) => e.stopPropagation()}
+             >
+               <FileText size={18} />
+               <span className="text-sm font-medium tracking-wide uppercase">Visualizar PDF</span>
+               <ExternalLink size={14} className="opacity-70" />
+             </a>
+          )}
+          
+          {photo.caption && (
+            <p 
+                className="text-stone-300 font-serif italic tracking-wide inline-block bg-black/50 px-6 py-3 rounded-full backdrop-blur-sm"
+                style={{ fontSize: 'var(--font-size-caption)' }}
+            >
+                {photo.caption}
+            </p>
+          )}
         </div>
       )}
     </div>

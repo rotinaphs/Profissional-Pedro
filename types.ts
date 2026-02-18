@@ -6,6 +6,7 @@ export interface Photo {
   caption?: string;
   width?: number;
   height?: number;
+  pdfUrl?: string;
 }
 
 export interface Album {
@@ -15,6 +16,7 @@ export interface Album {
   coverImage: string;
   date: string;
   photos: Photo[];
+  pdfUrl?: string;
 }
 
 export interface TextWork {
@@ -41,6 +43,7 @@ export interface Profile {
   bio: string[];
   contact: {
     email: string;
+    phone?: string;
     instagram: string;
     linkedin?: string;
   };

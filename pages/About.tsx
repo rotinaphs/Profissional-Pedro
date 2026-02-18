@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useData, processImage } from '../context/DataContext';
-import { Mail, Instagram, Linkedin } from 'lucide-react';
+import { Mail, Instagram, Linkedin, Phone } from 'lucide-react';
 import FadeIn from '../components/FadeIn';
 
 const About: React.FC = () => {
@@ -70,6 +70,12 @@ const About: React.FC = () => {
                       <Mail size={20} /> {profile.contact.email}
                   </a>
                   
+                  {profile.contact.phone && (
+                    <a href={`tel:${profile.contact.phone.replace(/[^\d+]/g, '')}`} className="flex items-center gap-3 hover:opacity-70 transition-opacity w-fit">
+                        <Phone size={20} /> {profile.contact.phone}
+                    </a>
+                  )}
+
                   <a 
                     href={`https://instagram.com/${profile.contact.instagram.replace(/^@/, '')}`} 
                     target="_blank" 
