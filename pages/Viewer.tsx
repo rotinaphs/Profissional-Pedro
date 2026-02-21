@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, ZoomIn, ZoomOut } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -16,13 +15,14 @@ const Viewer: React.FC = () => {
   const type = searchParams.get('type');
   
   const [numPages, setNumPages] = useState<number | null>(null);
-  const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
-  const [loading, setLoading] = useState(true);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const minSwipeDistance = 50;
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     // Prevent right click
@@ -35,67 +35,7 @@ const Viewer: React.FC = () => {
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
-    setLoading(false);
   }
-
-  function changePage(offset: number) {
-    setPageNumber(prevPageNumber => {
-      const newPage = prevPageNumber + offset;
-      if (numPages && (newPage < 1 || newPage > numPages)) {
-        return prevPageNumber;
-      }
-      return newPage;
-    });
-  }
-
-  function previousPage() {
-    changePage(-1);
-  }
-
-  function nextPage() {
-    changePage(1);
-  }
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientY);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientY);
-  };
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStart || !touchEnd) return;
-    if (scale > 1.2) return; // Disable swipe nav if zoomed in
-
-    const distance = touchStart - touchEnd;
-    const isSwipeUp = distance > minSwipeDistance;
-    const isSwipeDown = distance < -minSwipeDistance;
-    
-    const container = e.currentTarget as HTMLDivElement;
-    // Check if content is scrollable
-    const isScrollable = container.scrollHeight > container.clientHeight;
-    
-    // Logic for scrollable content:
-    // If at bottom and swiping up -> Next Page
-    // If at top and swiping down -> Prev Page
-    
-    const isAtBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 5;
-    const isAtTop = container.scrollTop < 5;
-
-    if (isSwipeUp) {
-       if (!isScrollable || isAtBottom) {
-           nextPage();
-       }
-    }
-    
-    if (isSwipeDown) {
-       if (!isScrollable || isAtTop) {
-           previousPage();
-       }
-    }
-  };
 
   if (!url) {
     return (
@@ -120,7 +60,7 @@ const Viewer: React.FC = () => {
           <ArrowLeft size={16} /> Fechar Visualizador
         </button>
         
-        {type === 'pdf' && numPages && (
+        {type === 'pdf' && (
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-stone-800 rounded-lg p-1">
               <button 
@@ -137,26 +77,6 @@ const Viewer: React.FC = () => {
                 title="Aumentar Zoom"
               >
                 <ZoomIn size={16} />
-              </button>
-            </div>
-            
-            <div className="flex items-center gap-2 bg-stone-800 rounded-lg p-1">
-              <button 
-                disabled={pageNumber <= 1} 
-                onClick={previousPage}
-                className="p-1 hover:bg-stone-700 rounded text-stone-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span className="text-xs text-stone-400 min-w-[60px] text-center">
-                {pageNumber} de {numPages}
-              </span>
-              <button 
-                disabled={pageNumber >= (numPages || 0)} 
-                onClick={nextPage}
-                className="p-1 hover:bg-stone-700 rounded text-stone-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight size={16} />
               </button>
             </div>
           </div>
@@ -177,37 +97,35 @@ const Viewer: React.FC = () => {
             Seu navegador não suporta a exibição de vídeos.
           </video>
         ) : (
-          <div 
-            className="w-full h-full flex items-center justify-center overflow-auto custom-scrollbar"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-          >
+          <div className="w-full h-full flex flex-col items-center overflow-auto custom-scrollbar pt-4 md:pt-0">
             <Document
               file={url}
               onLoadSuccess={onDocumentLoadSuccess}
               loading={
-                <div className="flex items-center justify-center text-white">
+                <div className="flex items-center justify-center text-white h-full">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-2"></div>
                   Carregando PDF...
                 </div>
               }
               error={
-                <div className="flex flex-col items-center justify-center text-red-400 p-4 text-center">
+                <div className="flex flex-col items-center justify-center text-red-400 p-4 text-center h-full">
                   <AlertTriangle size={32} className="mb-2" />
                   <p>Erro ao carregar o documento.</p>
                 </div>
               }
-              className="flex justify-center"
+              className="flex flex-col items-center gap-8 py-8"
             >
-              <Page 
-                pageNumber={pageNumber} 
-                scale={scale} 
-                renderTextLayer={false} 
-                renderAnnotationLayer={false}
-                className="shadow-2xl"
-                width={window.innerWidth > 768 ? undefined : window.innerWidth}
-              />
+              {numPages && Array.from(new Array(numPages), (_, index) => (
+                <Page 
+                  key={`page_${index + 1}`}
+                  pageNumber={index + 1} 
+                  scale={scale} 
+                  renderTextLayer={false} 
+                  renderAnnotationLayer={false}
+                  className="shadow-2xl bg-white"
+                  width={windowWidth > 768 ? undefined : windowWidth}
+                />
+              ))}
             </Document>
           </div>
         )}
