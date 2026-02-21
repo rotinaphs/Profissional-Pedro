@@ -43,7 +43,7 @@ const Viewer: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-8 w-full overflow-hidden">
+      <div className="flex-1 relative flex flex-col items-center justify-center p-0 md:p-8 w-full overflow-hidden">
         {type === 'video' ? (
           <video 
             src={url} 
@@ -56,9 +56,9 @@ const Viewer: React.FC = () => {
             Seu navegador não suporta a exibição de vídeos.
           </video>
         ) : (
-          <div className="w-full flex-1 bg-white rounded-lg shadow-2xl overflow-hidden relative flex flex-col">
+          <div className="w-full flex-1 bg-white md:rounded-lg shadow-2xl overflow-hidden relative flex flex-col">
             <iframe 
-              src={`${url}#toolbar=0&navpanes=0&scrollbar=0`} 
+              src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
               className="w-full flex-1 border-none"
               title="PDF Viewer"
               onContextMenu={(e) => e.preventDefault()}
