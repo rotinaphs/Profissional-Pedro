@@ -1,6 +1,6 @@
 
 import React, { useEffect, useCallback, useState, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, FileText, ExternalLink } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, FileText, ExternalLink, Play } from 'lucide-react';
 import { Photo } from '../types';
 
 interface LightboxProps {
@@ -226,22 +226,40 @@ const Lightbox: React.FC<LightboxProps> = ({ photo, onClose, onNext, onPrev, has
         />
       </div>
 
-      {/* Caption & PDF Link */}
-      {(photo.caption || photo.pdfUrl) && scale === 1 && (
+      {/* Caption, PDF & Video Links */}
+      {(photo.caption || photo.pdfUrl || photo.videoUrl) && scale === 1 && (
         <div className="absolute bottom-8 left-0 right-0 flex flex-col items-center gap-4 pointer-events-none px-6">
-          {photo.pdfUrl && (
-             <a 
-               href={photo.pdfUrl} 
-               target="_blank" 
-               rel="noopener noreferrer"
-               className="pointer-events-auto flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-6 py-2 rounded-full transition-all border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
-               onClick={(e) => e.stopPropagation()}
-             >
-               <FileText size={18} />
-               <span className="text-sm font-medium tracking-wide uppercase">Visualizar PDF</span>
-               <ExternalLink size={14} className="opacity-70" />
-             </a>
-          )}
+          <div className="flex flex-wrap justify-center gap-3">
+            {photo.pdfUrl && (
+               <a 
+                 href={`#/viewer?url=${encodeURIComponent(photo.pdfUrl)}&type=pdf`} 
+                 target="_blank" 
+                 rel="noopener noreferrer"
+                 className="pointer-events-auto flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-6 py-2 rounded-full transition-all border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
+                 onClick={(e) => e.stopPropagation()}
+               >
+                 <FileText size={18} />
+                 <span className="text-sm font-medium tracking-wide uppercase">Visualizar PDF</span>
+                 <ExternalLink size={14} className="opacity-70" />
+               </a>
+            )}
+
+            {photo.videoUrl && (
+               <a 
+                 href={`#/viewer?url=${encodeURIComponent(photo.videoUrl)}&type=video`} 
+                 target="_blank" 
+                 rel="noopener noreferrer"
+                 className="pointer-events-auto flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-6 py-2 rounded-full transition-all border border-white/20 shadow-lg hover:shadow-xl hover:scale-105"
+                 onClick={(e) => e.stopPropagation()}
+               >
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="mr-1">
+                   <path d="M5 3L19 12L5 21V3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="miter" />
+                 </svg>
+                 <span className="text-sm font-medium tracking-wide uppercase">Assistir Vídeo</span>
+                 <ExternalLink size={14} className="opacity-70" />
+               </a>
+            )}
+          </div>
           
           {photo.caption && (
             <p 

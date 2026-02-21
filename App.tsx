@@ -9,6 +9,7 @@ import Writings from './pages/Writings';
 import WritingDetail from './pages/WritingDetail';
 import About from './pages/About';
 import Admin from './pages/Admin';
+import Viewer from './pages/Viewer';
 import { DataProvider } from './context/DataContext';
 
 const App: React.FC = () => {
@@ -19,6 +20,7 @@ const App: React.FC = () => {
           <Routes>
             {/* Admin Route outside of standard layout if desired, but here sharing it */}
             <Route path="/admin" element={<Admin />} />
+            <Route path="/viewer" element={<Viewer />} />
             
             {/* Public Routes */}
             <Route path="*" element={

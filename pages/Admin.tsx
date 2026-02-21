@@ -29,9 +29,9 @@ const useAutoSave = (callback: () => void, dependencies: any[], delay = 1000) =>
 
 // --- Utility: Upload Logic (Pure Function) ---
 const uploadToStorage = async (file: File): Promise<string> => {
-  // Validate type: Allow images and PDFs
-  if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-    throw new Error('Apenas arquivos de imagem ou PDF são permitidos.');
+  // Validate type: Allow images, videos and PDFs
+  if (!file.type.startsWith('image/') && file.type !== 'application/pdf' && !file.type.startsWith('video/')) {
+    throw new Error('Apenas arquivos de imagem, vídeo ou PDF são permitidos.');
   }
 
   const fileExt = file.name.split('.').pop();
@@ -302,11 +302,57 @@ const PdfInput: React.FC<{ label: string; value: string | undefined; onChange: (
            <div className={`bg-stone-100 rounded-lg border border-stone-200 overflow-hidden ${compact ? 'p-2' : 'p-4'}`}>
               <div className="flex items-center justify-between mb-2">
                  <span className="text-[10px] font-bold text-stone-500 uppercase flex items-center gap-2"><FileText size={14} /> Pré-visualização do Documento</span>
-                 <a href={value} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-stone-700 hover:text-stone-900 flex items-center gap-1 bg-white px-2 py-1 rounded border border-stone-200 hover:bg-stone-50"><ExternalLink size={12} /> Abrir em nova aba</a>
+                 <a href={`#/viewer?url=${encodeURIComponent(value || '')}&type=pdf`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-stone-700 hover:text-stone-900 flex items-center gap-1 bg-white px-2 py-1 rounded border border-stone-200 hover:bg-stone-50"><ExternalLink size={12} /> Abrir em nova aba</a>
               </div>
               {!compact && (
-                <iframe src={value} className="w-full h-64 sm:h-80 md:h-96 lg:h-[30rem] bg-white border border-stone-200 rounded" title="PDF Preview"></iframe>
+                <iframe src={`${value}#toolbar=0&navpanes=0&scrollbar=0`} className="w-full h-64 sm:h-80 md:h-96 lg:h-[30rem] bg-white border border-stone-200 rounded" title="PDF Preview" onContextMenu={(e) => e.preventDefault()}></iframe>
               )}
+           </div>
+         )}
+      </div>
+    </div>
+  );
+};
+
+// --- Video Input Component ---
+const VideoInput: React.FC<{ label: string; value: string | undefined; onChange: (val: string) => void; className?: string; }> = ({ label, value, onChange, className }) => {
+  const { isUploading, error, handleUpload } = useUpload();
+  
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleUpload(e.target.files?.[0], (url) => {
+        onChange(url);
+        e.target.value = '';
+    });
+  };
+
+  return (
+    <div className={`space-y-2 ${className}`}>
+      <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">{label}</label>
+      <div className="flex flex-col gap-3">
+         <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+            <div className="flex-1 w-full">
+              <input 
+                type="text" 
+                value={value || ''} 
+                onChange={(e) => onChange(e.target.value)} 
+                className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-lg text-xs outline-none" 
+                placeholder="URL do Vídeo..." 
+              />
+            </div>
+            <label className={`bg-stone-200 text-stone-700 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-stone-300 transition-colors flex items-center gap-2 cursor-pointer whitespace-nowrap ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <Upload size={14} /> {isUploading ? 'Enviando...' : 'Upload Vídeo'}
+                <input type="file" onChange={onFileChange} className="hidden" accept="video/*" disabled={isUploading} />
+            </label>
+         </div>
+         {error && <div className="text-xs text-red-500 font-bold flex items-center gap-1"><AlertTriangle size={14} /> {error}</div>}
+         
+         {value && (
+           <div className="bg-stone-100 rounded-lg border border-stone-200 overflow-hidden p-4">
+              <div className="flex items-center justify-between mb-2">
+                 <span className="text-[10px] font-bold text-stone-500 uppercase flex items-center gap-2"><ImageIcon size={14} /> Pré-visualização do Vídeo</span>
+                 <a href={`#/viewer?url=${encodeURIComponent(value || '')}&type=video`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-stone-700 hover:text-stone-900 flex items-center gap-1 bg-white px-2 py-1 rounded border border-stone-200 hover:bg-stone-50"><ExternalLink size={12} /> Abrir em nova aba</a>
+              </div>
+              <video src={value} controls controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} className="w-full h-auto max-h-64 bg-black rounded"></video>
            </div>
          )}
       </div>
@@ -374,6 +420,7 @@ const PhotoItemEditor: React.FC<{ photo: any, albumId: string, updatePhoto: any,
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [showPdf, setShowPdf] = useState(!!photo.pdfUrl);
+    const [showVideo, setShowVideo] = useState(!!photo.videoUrl);
     const imageRef = useRef<HTMLImageElement>(null);
     
     const { src, style } = processImage(photo.src);
@@ -454,12 +501,18 @@ const PhotoItemEditor: React.FC<{ photo: any, albumId: string, updatePhoto: any,
           <div className="flex flex-col gap-2">
             <button onClick={() => removePhoto(albumId, photo.id)} className="text-stone-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all" title="Remover foto"><X size={18} /></button>
             <button onClick={() => setShowPdf(!showPdf)} className={`p-2 rounded-lg transition-all ${showPdf || photo.pdfUrl ? 'text-stone-800 bg-stone-200' : 'text-stone-300 hover:text-stone-600 hover:bg-stone-100'}`} title="Anexar PDF"><FileText size={18} /></button>
+            <button onClick={() => setShowVideo(!showVideo)} className={`p-2 rounded-lg transition-all ${showVideo || photo.videoUrl ? 'text-stone-800 bg-stone-200' : 'text-stone-300 hover:text-stone-600 hover:bg-stone-100'}`} title="Anexar Vídeo"><ImageIcon size={18} /></button>
           </div>
         </div>
 
         {(showPdf || photo.pdfUrl) && (
            <div className="pt-2 border-t border-stone-200">
               <PdfInput label="Anexo PDF (Opcional)" value={photo.pdfUrl} onChange={(val) => updatePhoto(albumId, photo.id, 'pdfUrl', val, true)} compact />
+           </div>
+        )}
+        {(showVideo || photo.videoUrl) && (
+           <div className="pt-2 border-t border-stone-200">
+              <VideoInput label="Anexo Vídeo (Opcional)" value={photo.videoUrl} onChange={(val) => updatePhoto(albumId, photo.id, 'videoUrl', val, true)} />
            </div>
         )}
       </div>
@@ -592,12 +645,15 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent:
         
         // --- FORCE SAVE IMPLEMENTATION ---
         if (forceSave) {
-            setSaveStatus('saving');
-            // We use the 'next' state here immediately
-            Promise.all([updateAlbums(next), updatePageContent(localPageContent)]).then(() => {
-                setSaveStatus('success');
-                setTimeout(() => setSaveStatus('idle'), 2000);
-            });
+            // Escape render phase to avoid "Cannot update a component while rendering a different component"
+            setTimeout(() => {
+                setSaveStatus('saving');
+                // We use the 'next' state here immediately
+                Promise.all([updateAlbums(next), updatePageContent(localPageContent)]).then(() => {
+                    setSaveStatus('success');
+                    setTimeout(() => setSaveStatus('idle'), 2000);
+                });
+            }, 0);
         }
         return next;
      });
@@ -683,6 +739,7 @@ const PortfolioEditor: React.FC<{ albums: any[], updateAlbums: any, pageContent:
                         <div className="space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Data</label><input type="text" value={album.date} onChange={e => updateAlbumField(album.id, 'date', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg" /></div>
                         <div className="col-span-2 space-y-2"><ImageInput label="Capa do Álbum" value={album.coverImage} onChange={(val) => updateAlbumField(album.id, 'coverImage', val)} /></div>
                         <div className="col-span-2 space-y-2"><label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Descrição</label><textarea value={album.description} onChange={e => updateAlbumField(album.id, 'description', e.target.value)} className="w-full p-3 border border-stone-200 rounded-lg h-24 resize-none" /></div>
+                        <div className="col-span-2 space-y-2"><VideoInput label="Vídeo em Destaque (Opcional)" value={album.videoUrl} onChange={(val) => updateAlbumField(album.id, 'videoUrl', val)} /></div>
                         <div className="col-span-2 space-y-2"><PdfInput label="Documento PDF (Album) - Opcional" value={album.pdfUrl} onChange={(val) => updateAlbumField(album.id, 'pdfUrl', val)} /></div>
                      </div>
                      <div className="flex flex-col gap-4 mb-6 border-b border-stone-100 pb-4">

@@ -7,6 +7,7 @@ export interface Photo {
   width?: number;
   height?: number;
   pdfUrl?: string;
+  videoUrl?: string;
 }
 
 export interface Album {
@@ -17,6 +18,7 @@ export interface Album {
   date: string;
   photos: Photo[];
   pdfUrl?: string;
+  videoUrl?: string;
 }
 
 export interface TextWork {

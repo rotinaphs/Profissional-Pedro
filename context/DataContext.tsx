@@ -174,14 +174,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const changes = updater(prev);
         const newState = { ...prev, ...changes };
         
-        // Dispara salvamento 'fire-and-forget' com debounce opcional ou direto
-        // Aqui fazemos direto para garantir persistência, o Supabase lida bem com concorrência básica
-        supabase.from('portfolio_config')
-          .upsert({ id: 'main', content: newState })
-          .then(({ error }) => {
-             if(error) console.error("Save error:", error);
-             resolve();
-          });
+        // Escape render phase for side effects
+        setTimeout(() => {
+          supabase.from('portfolio_config')
+            .upsert({ id: 'main', content: newState })
+            .then(({ error }) => {
+               if(error) console.error("Save error:", error);
+               resolve();
+            });
+        }, 0);
 
         return newState;
       });
